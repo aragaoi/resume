@@ -1,0 +1,26 @@
+{
+  "personal": {
+    "label": "Personal Website",
+    "icon": "🌐"
+  },
+  "portfolio": {
+    "label": "Portfolio",
+    "icon": "💼"
+  },
+  "linkedin": {
+    "label": "LinkedIn",
+    "icon": "💼"
+  },
+  "github": {
+    "label": "GitHub",
+    "icon": "💻"
+  },
+  "blog": {
+    "label": "Blog",
+    "icon": "✍️"
+  },
+  "other": {
+    "label": "Website",
+    "icon": "🔗"
+  }
+}

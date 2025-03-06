@@ -1,0 +1,61 @@
+[Full Name]
+
+Contact Information:
+Email: [your email]
+Phone: [your phone]
+Location: [city, state]
+Website: [your website]
+Portfolio: [your portfolio]
+LinkedIn: [your linkedin]
+
+
+EXPERIENCE
+
+[Current Job Title] at [Company Name]
+[Start Date] - Present
+
+• [Describe a major achievement with numbers if possible]
+• [List an important responsibility]
+• [Mention a project or impact you had]
+
+
+[Previous Job Title] at [Company Name]
+[Start Date] - [End Date]
+
+• [Describe a major achievement with numbers if possible]
+• [List an important responsibility]
+• [Mention a project or impact you had]
+
+
+SKILLS
+
+Technical Skills:
+• [List your main technical skills]
+• [Programming languages you know]
+• [Tools and software you use]
+
+Other Skills:
+• [Languages you speak]
+• [Soft skills like leadership]
+• [Industry knowledge]
+
+
+EDUCATION
+
+[University Name]
+[Degree] in [Field of Study]
+[Start Year] - [End Year]
+
+• GPA: [Your GPA]
+• [Any honors or achievements]
+• [Relevant courses you took]
+
+
+CERTIFICATIONS
+
+[Certification Name]
+[Organization that issued it]
+[When you got it]
+
+• [What you learned]
+• [Any special achievements] 

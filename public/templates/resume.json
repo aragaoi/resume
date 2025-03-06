@@ -1,0 +1,104 @@
+{
+  "name": "[Full Name]",
+  "title": "[Current Title]",
+  "contact": {
+    "email": "[email@example.com]",
+    "phone": "[+1 234 567 8900]",
+    "location": "[City, State]",
+    "websites": [
+      {
+        "url": "[https://personal.example.com]",
+        "type": "personal"
+      },
+      {
+        "url": "[https://portfolio.example.com]",
+        "type": "portfolio"
+      },
+      {
+        "url": "[https://linkedin.com/in/profile]",
+        "type": "linkedin"
+      }
+    ]
+  },
+  "sections": [
+    {
+      "title": "Experience",
+      "content": [
+        {
+          "title": "[Current Job Title] at [Company]",
+          "period": {
+            "start": "[Start Date]"
+          },
+          "content": [
+            "[Key achievement with metrics]",
+            "[Major responsibility]",
+            "[Notable project or impact]"
+          ]
+        },
+        {
+          "title": "[Previous Job Title] at [Company]",
+          "period": {
+            "start": "[Start Date]",
+            "end": "[End Date]"
+          },
+          "content": [
+            "[Key achievement with metrics]",
+            "[Major responsibility]",
+            "[Notable project or impact]"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Skills",
+      "content": [
+        {
+          "title": "Technical Skills",
+          "content": [
+            "[Main technical skills]",
+            "[Programming languages]",
+            "[Frameworks and tools]"
+          ]
+        },
+        {
+          "title": "Other Skills",
+          "content": ["[Soft skills]", "[Languages]", "[Industry knowledge]"]
+        }
+      ]
+    },
+    {
+      "title": "Education",
+      "content": [
+        {
+          "title": "[University Name]",
+          "period": {
+            "start": "[Start Year]",
+            "end": "[End Year]"
+          },
+          "content": [
+            "[Degree] in [Field]",
+            "GPA: [X.XX]",
+            "[Notable achievement]",
+            "[Relevant coursework]"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Certifications",
+      "content": [
+        {
+          "title": "[Certification Name]",
+          "period": {
+            "start": "[Issue Date]"
+          },
+          "content": [
+            "[Issuing Organization]",
+            "[Relevant skills or knowledge gained]",
+            "[Score or achievement if applicable]"
+          ]
+        }
+      ]
+    }
+  ]
+}

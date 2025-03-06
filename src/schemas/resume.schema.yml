@@ -1,0 +1,81 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: Resume Schema
+type: object
+required:
+  - name
+  - contact
+  - sections
+properties:
+  name:
+    type: string
+    description: Full name of the person
+  title:
+    type: string
+    description: Current professional title
+  contact:
+    type: object
+    required:
+      - email
+    properties:
+      email:
+        type: string
+        format: email
+      phone:
+        type: string
+      location:
+        type: string
+      websites:
+        type: array
+        items:
+          type: object
+          required:
+            - url
+            - type
+          properties:
+            url:
+              type: string
+              format: uri
+            type:
+              type: string
+              enum:
+                - personal
+                - portfolio
+                - linkedin
+                - blog
+                - other
+            label:
+              type: string
+  sections:
+    type: array
+    items:
+      type: object
+      required:
+        - title
+        - content
+      properties:
+        title:
+          type: string
+        content:
+          oneOf:
+            - type: array
+              items:
+                oneOf:
+                  - type: string
+                  - type: object
+                    required:
+                      - title
+                      - content
+                    properties:
+                      title:
+                        type: string
+                      period:
+                        type: object
+                        properties:
+                          start:
+                            type: string
+                          end:
+                            type: string
+                      content:
+                        type: array
+                        items:
+                          type: string
