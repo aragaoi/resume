@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { Resume } from '../components/Resume';
 import { TemplateDownload } from '../components/TemplateDownload';
@@ -6,7 +8,7 @@ import type { Resume as ResumeType } from '../types/Resume';
 
 const STORAGE_KEY = 'savedResume';
 
-export default function Home() {
+export function Home() {
   const [resume, setResume] = useState<ResumeType | null>(null);
   const [error, setError] = useState<string>('');
   const [rememberFile, setRememberFile] = useState(false);
