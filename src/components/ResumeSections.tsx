@@ -8,18 +8,13 @@ interface ResumeSectionsProps {
 }
 
 export const ResumeSections: React.FC<ResumeSectionsProps> = ({ sections }) => {
-  console.log('ResumeSections received sections:', JSON.stringify(sections, null, 2));
-  console.log('ResumeSections keys:', JSON.stringify(Object.keys(sections), null, 2));
-
   const [activeTab, setActiveTab] = useState('');
 
   useEffect(() => {
     // Set the active tab when sections change
     const keys = Object.keys(sections);
-    console.log('Setting active tab from keys:', JSON.stringify(keys, null, 2));
     if (keys.length > 0) {
       setActiveTab(keys[0]);
-      console.log('Active tab set to:', keys[0]);
     }
   }, [sections]);
 

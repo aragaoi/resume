@@ -58,8 +58,6 @@ export const Home: React.FC = () => {
           data = await parseResumeText(text, fileExtension);
         }
 
-        console.log('Parsed resume:', JSON.stringify(data, null, 2));
-
         setResume(data);
       } catch (err) {
         console.error('Error loading default resume:', err);
@@ -120,9 +118,9 @@ export const Home: React.FC = () => {
       if (rememberFile) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(parsedResume));
       }
-    } catch (error) {
+    } catch (err) {
       setError('Error parsing resume file. Please check the format and try again.');
-      console.error('Error reading file:', error);
+      console.error('Error reading file:', err);
     }
   };
 

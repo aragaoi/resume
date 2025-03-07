@@ -19,26 +19,74 @@
 
 /* Print styles */
 @media print {
+  /* Set page size to A4 and remove margins to hide header/footer */
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  
   html {
-    font-size: 12pt;
+    font-size: 11pt;
   }
 
   body {
-    background: white;
-    color: black;
+    margin: 2cm;
   }
 
-  a {
-    text-decoration: none;
-    color: black;
+  /* Force light theme for printing */
+  @media print {
+    html[data-theme] {
+      data-theme: "light" !important;
+    }
+  }
+
+  /* Layout adjustments */
+  .navbar,
+  .tabs,
+  .tooltip {
+    display: none !important;
+  }
+
+  .card {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+  }
+
+  .badge {
+    font-size: 0.875rem !important;
+    padding: 0.25rem 0.75rem !important;
+  }
+
+  /* Spacing and breaks */
+  section {
+    break-inside: avoid;
+    margin-bottom: 2rem !important;
+  }
+
+  section:last-child {
+    margin-bottom: 0 !important;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    color: black;
     break-after: avoid;
   }
 
-  section {
-    break-inside: avoid;
+  /* Ensure proper page margins */
+  .resume-print-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+
+  /* Ensure proper spacing between items */
+  .resume-print-container > div {
+    margin-bottom: 2rem !important;
+  }
+
+  .resume-print-container > div:last-child {
+    margin-bottom: 0 !important;
   }
 } 
