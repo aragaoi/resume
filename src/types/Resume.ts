@@ -9,10 +9,22 @@ export interface Period {
   end?: string;
 }
 
+export interface ResumeItem {
+  title: string;
+  subtitle?: string;
+  date?: string;
+  period?: Period;
+  description?: string;
+  details?: string[];
+  content?: string[];
+  tags?: string[];
+  items?: ResumeItem[]; // For nested items like skills categories
+}
+
 export interface ResumeSection {
   title: string;
   period?: Period;
-  content: string | string[] | ResumeSection[];
+  items: ResumeItem[];
 }
 
 export interface Resume {

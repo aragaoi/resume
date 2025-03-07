@@ -1,56 +1,45 @@
-import React, { useEffect } from 'react';
-import { ThemeConfig, defaultTheme } from '../styles/theme';
+'use client';
 
-interface ThemeProviderProps {
-  theme?: Partial<ThemeConfig>;
-  children: React.ReactNode;
+import React, { createContext, useContext, useEffect, useState } from 'react';
+
+type Theme = 'light' | 'dark' | 'cupcake';
+
+interface ThemeContextType {
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
 }
 
-export const ThemeProvider: React.FC<ThemeProviderProps> = ({ theme, children }) => {
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setTheme] = useState<Theme>('light');
+
+  // Initialize theme from localStorage or system preference
   useEffect(() => {
-    const mergedTheme = {
-      ...defaultTheme,
-      ...theme,
-      colors: {
-        ...defaultTheme.colors,
-        ...theme?.colors,
-      },
-      typography: {
-        ...defaultTheme.typography,
-        ...theme?.typography,
-      },
-      spacing: {
-        ...defaultTheme.spacing,
-        ...theme?.spacing,
-      },
-      borderRadius: {
-        ...defaultTheme.borderRadius,
-        ...theme?.borderRadius,
-      },
-    };
+    // Check if theme is stored in localStorage
+    const storedTheme = localStorage.getItem('theme') as Theme | null;
 
-    const root = document.documentElement;
+    if (storedTheme && ['light', 'dark', 'cupcake'].includes(storedTheme)) {
+      setTheme(storedTheme);
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      // If no stored theme but system prefers dark mode
+      setTheme('dark');
+    }
+  }, []);
 
-    // Colors
-    Object.entries(mergedTheme.colors).forEach(([key, value]) => {
-      root.style.setProperty(`--color-${key}`, value);
-    });
-
-    // Typography
-    Object.entries(mergedTheme.typography).forEach(([key, value]) => {
-      root.style.setProperty(`--${key.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)}`, value);
-    });
-
-    // Spacing
-    Object.entries(mergedTheme.spacing).forEach(([key, value]) => {
-      root.style.setProperty(`--space-${key}`, value);
-    });
-
-    // Border Radius
-    Object.entries(mergedTheme.borderRadius).forEach(([key, value]) => {
-      root.style.setProperty(`--radius-${key}`, value);
-    });
+  // Update data-theme attribute and localStorage when theme changes
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
   }, [theme]);
 
-  return <>{children}</>;
-};
+  return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>;
+}
+
+export function useTheme() {
+  const context = useContext(ThemeContext);
+  if (context === undefined) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
+}
