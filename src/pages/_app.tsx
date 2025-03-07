@@ -1,11 +1,11 @@
 import type { AppProps } from 'next/app';
-import { ThemeProvider } from '../components/ThemeProvider';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import '../styles/globals.css';
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <ThemeProvider>
+    <TooltipProvider>
       <Component {...pageProps} />
-    </ThemeProvider>
+    </TooltipProvider>
   );
 }
