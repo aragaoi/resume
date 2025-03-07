@@ -70,58 +70,48 @@ export default function Home() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {!resume ? (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4">
-          <h1 className="text-2xl font-bold mb-4">Resume Builder</h1>
-          <p className="mb-4">Upload your resume file (JSON, YAML, Markdown, or TXT)</p>
-          <div className="flex flex-col items-center gap-4">
-            <input
-              type="file"
-              accept=".json,.yml,.yaml,.md,.txt"
-              onChange={handleFileUpload}
-              className="block w-full max-w-xs text-sm text-gray-500
-                file:mr-4 file:py-2 file:px-4
-                file:rounded-full file:border-0
-                file:text-sm file:font-semibold
-                file:bg-blue-50 file:text-blue-700
-                hover:file:bg-blue-100"
-            />
-            <label className="flex items-center gap-2">
+  if (!resume) {
+    return (
+      <div className="min-h-screen bg-[#f0f4f8] flex flex-col items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
+          <h1 className="text-2xl font-bold text-primary mb-6 text-center">Resume Builder</h1>
+          <div className="space-y-6">
+            <div>
+              <p className="text-center mb-4 text-gray-600">
+                Upload your resume file (JSON, YAML, Markdown, or TXT)
+              </p>
+              <input
+                type="file"
+                accept=".json,.yml,.yaml,.md,.txt"
+                onChange={handleFileUpload}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4
+                  file:rounded-full file:border-0 file:text-sm file:font-semibold
+                  file:bg-primary file:text-white hover:file:bg-secondary
+                  cursor-pointer"
+              />
+            </div>
+
+            <label className="flex items-center justify-center gap-2">
               <input
                 type="checkbox"
                 checked={rememberFile}
-                onChange={(e) => setRememberFile(e.target.checked)}
-                className="rounded text-blue-600"
+                onChange={(e) => setRememberFile(e.checked)}
+                className="rounded text-primary focus:ring-primary"
               />
-              Remember this file
+              <span className="text-sm text-gray-600">Remember this file</span>
             </label>
-            <div className="mt-4">
-              <p className="text-sm text-gray-600 mb-2">Need a template to start?</p>
+
+            {error && <p className="text-red-500 text-center">{error}</p>}
+
+            <div className="border-t pt-6">
+              <p className="text-sm text-gray-600 text-center mb-4">Need a template to start?</p>
               <TemplateDownload />
             </div>
           </div>
-          {error && <p className="mt-4 text-red-500">{error}</p>}
         </div>
-      ) : (
-        <div>
-          <div className="max-w-4xl mx-auto pt-4 px-4">
-            <button
-              onClick={() => {
-                setResume(null);
-                if (!rememberFile) {
-                  localStorage.removeItem(STORAGE_KEY);
-                }
-              }}
-              className="bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-semibold hover:bg-blue-100"
-            >
-              Upload Different File
-            </button>
-          </div>
-          <Resume resume={resume} />
-        </div>
-      )}
-    </div>
-  );
+      </div>
+    );
+  }
+
+  return <Resume resume={resume} onBack={() => setResume(null)} />;
 }
