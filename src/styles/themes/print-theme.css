@@ -1,0 +1,76 @@
+/* Import theme variables */
+@import "./theme-variables.css";
+
+/* 
+ * Print theme colors - used only for printing, not selectable by users
+ * Based on DaisyUI's light theme for optimal printing
+ * 
+ * IMPORTANT: Do not modify color values directly in this file.
+ * Instead, update the color variables in theme-variables.css.
+ * This ensures a single source of truth for all theme colors.
+ */
+[data-theme="print"] {
+  /* Main colors */
+  --p: var(--print-theme-primary);
+  --pf: var(--print-theme-primary-focus);
+  --pc: var(--print-theme-primary-content);
+  
+  --s: var(--print-theme-secondary);
+  --sf: var(--print-theme-secondary-focus);
+  --sc: var(--print-theme-secondary-content);
+  
+  --a: var(--print-theme-accent);
+  --af: var(--print-theme-accent-focus);
+  --ac: var(--print-theme-accent-content);
+  
+  --n: var(--print-theme-neutral);
+  --nf: var(--print-theme-neutral-focus);
+  --nc: var(--print-theme-neutral-content);
+  
+  /* Base colors */
+  --b1: var(--print-theme-base-100);
+  --b2: var(--print-theme-base-200);
+  --b3: var(--print-theme-base-300);
+  --bc: var(--print-theme-base-content);
+  
+  /* State colors */
+  --in: var(--print-theme-info);
+  --inc: var(--print-theme-info-content);
+  --su: var(--print-theme-success);
+  --suc: var(--print-theme-success-content);
+  --wa: var(--print-theme-warning);
+  --wac: var(--print-theme-warning-content);
+  --er: var(--print-theme-error);
+  --erc: var(--print-theme-error-content);
+  
+  /* Derived colors */
+  --primary: hsl(var(--p));
+  --primary-focus: hsl(var(--pf));
+  --primary-content: hsl(var(--pc));
+  
+  --secondary: hsl(var(--s));
+  --secondary-focus: hsl(var(--sf));
+  --secondary-content: hsl(var(--sc));
+  
+  --accent: hsl(var(--a));
+  --accent-focus: hsl(var(--af));
+  --accent-content: hsl(var(--ac));
+  
+  --neutral: hsl(var(--n));
+  --neutral-focus: hsl(var(--nf));
+  --neutral-content: hsl(var(--nc));
+  
+  --base-100: hsl(var(--b1));
+  --base-200: hsl(var(--b2));
+  --base-300: hsl(var(--b3));
+  --base-content: hsl(var(--bc));
+  
+  --info: hsl(var(--in));
+  --info-content: hsl(var(--inc));
+  --success: hsl(var(--su));
+  --success-content: hsl(var(--suc));
+  --warning: hsl(var(--wa));
+  --warning-content: hsl(var(--wac));
+  --error: hsl(var(--er));
+  --error-content: hsl(var(--erc));
+} 

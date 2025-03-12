@@ -22,7 +22,7 @@ export const Resume: React.FC<ResumeProps> = ({ resume, onBack }) => {
   );
 
   return (
-    <div className="min-h-screen bg-base-100 py-12 px-4 print:p-0 print:bg-white print:m-0 print:data-[theme=dark]:bg-white print:data-[theme=dark]:text-black resume-print-container">
+    <div className="min-h-screen bg-base-100 py-12 px-4 print:p-0 print:m-0 resume-print-container">
       {/* Navigation Bar */}
       <div className="navbar bg-base-100 fixed top-0 left-0 right-0 z-50 shadow-sm print:hidden">
         <div className="navbar-start">
@@ -48,15 +48,11 @@ export const Resume: React.FC<ResumeProps> = ({ resume, onBack }) => {
       <div className="max-w-4xl mx-auto mt-16 print:mt-0">
         <div className="card bg-base-100 shadow-xl overflow-hidden print:shadow-none print:border-0">
           {/* Header */}
-          <div className="p-8 pb-6 bg-base-200 print:bg-white print:p-0 print:pb-4 print:data-[theme=dark]:bg-white border-b print:border-b-0">
+          <div className="p-8 pb-6 bg-base-200 print:p-0 print:pb-4 border-b print:border-b-0">
             <div className="text-center mb-8 print:mb-4">
-              <h1 className="text-4xl md:text-5xl font-bold mb-3 print:text-4xl print:data-[theme=dark]:text-black">
-                {resume.name}
-              </h1>
+              <h1 className="text-4xl md:text-5xl font-bold mb-3 print:text-4xl">{resume.name}</h1>
               {resume.title && (
-                <p className="text-xl opacity-75 font-medium print:text-lg print:data-[theme=dark]:text-black">
-                  {resume.title}
-                </p>
+                <p className="text-xl opacity-75 font-medium print:text-lg">{resume.title}</p>
               )}
             </div>
 
@@ -66,7 +62,7 @@ export const Resume: React.FC<ResumeProps> = ({ resume, onBack }) => {
                 <div className="tooltip" data-tip="Send email">
                   <a
                     href={`mailto:${resume.contact.email}`}
-                    className="badge badge-lg print:badge-md print:data-[theme=dark]:bg-gray-200 print:data-[theme=dark]:text-black"
+                    className="badge badge-lg print:badge-md"
                   >
                     <span className="inline-block w-4 print:hidden">✉️</span>
                     {resume.contact.email}
@@ -75,10 +71,7 @@ export const Resume: React.FC<ResumeProps> = ({ resume, onBack }) => {
               )}
               {resume.contact.phone && (
                 <div className="tooltip" data-tip="Call">
-                  <a
-                    href={`tel:${resume.contact.phone}`}
-                    className="badge badge-lg print:badge-md print:data-[theme=dark]:bg-gray-200 print:data-[theme=dark]:text-black"
-                  >
+                  <a href={`tel:${resume.contact.phone}`} className="badge badge-lg print:badge-md">
                     <span className="inline-block w-4 print:hidden">📱</span>
                     {resume.contact.phone}
                   </a>
@@ -86,7 +79,7 @@ export const Resume: React.FC<ResumeProps> = ({ resume, onBack }) => {
               )}
               {resume.contact.location && (
                 <div className="tooltip" data-tip="Location">
-                  <span className="badge badge-lg print:badge-md print:data-[theme=dark]:bg-gray-200 print:data-[theme=dark]:text-black">
+                  <span className="badge badge-lg print:badge-md">
                     <span className="inline-block w-4 print:hidden">📍</span>
                     {resume.contact.location}
                   </span>
@@ -98,7 +91,7 @@ export const Resume: React.FC<ResumeProps> = ({ resume, onBack }) => {
                     href={website.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="badge badge-lg print:badge-md print:data-[theme=dark]:bg-gray-200 print:data-[theme=dark]:text-black"
+                    className="badge badge-lg print:badge-md"
                   >
                     <span className="inline-block w-4 print:hidden">
                       {websiteTypes[website.type]?.icon || websiteTypes.other.icon}
@@ -171,7 +164,7 @@ export const Resume: React.FC<ResumeProps> = ({ resume, onBack }) => {
                 {/* Print version - all sections visible */}
                 <div className="hidden print:block space-y-6">
                   {resume.sections.map((section, index) => (
-                    <div key={index} className="print:data-[theme=dark]:text-black">
+                    <div key={index}>
                       <ResumeSection section={section} isPrint />
                     </div>
                   ))}

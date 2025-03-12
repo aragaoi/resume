@@ -2,7 +2,20 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = 'light' | 'dark' | 'cupcake';
+// Define available themes as an enum
+export enum ThemeName {
+  LIGHT = 'light',
+  DARK = 'dark',
+  PRINT = 'print', // Hidden theme, only used for printing
+}
+
+// Define the user-selectable themes
+export const USER_SELECTABLE_THEMES = [ThemeName.LIGHT, ThemeName.DARK];
+
+// Define the default theme
+export const DEFAULT_THEME = ThemeName.LIGHT;
+
+type Theme = ThemeName.LIGHT | ThemeName.DARK;
 
 interface ThemeContextType {
   theme: Theme;
@@ -12,18 +25,18 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light');
+  const [theme, setTheme] = useState<Theme>(DEFAULT_THEME);
 
   // Initialize theme from localStorage or system preference
   useEffect(() => {
     // Check if theme is stored in localStorage
     const storedTheme = localStorage.getItem('theme') as Theme | null;
 
-    if (storedTheme && ['light', 'dark', 'cupcake'].includes(storedTheme)) {
+    if (storedTheme && USER_SELECTABLE_THEMES.includes(storedTheme as ThemeName)) {
       setTheme(storedTheme);
     } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       // If no stored theme but system prefers dark mode
-      setTheme('dark');
+      setTheme(ThemeName.DARK);
     }
   }, []);
 

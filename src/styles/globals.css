@@ -1,9 +1,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap');
 
 @import "tailwindcss";
-@plugin "daisyui" {
-  themes: light --default, dark --prefersdark, cupcake;
-}
+
+/* 
+ * Theme System
+ * 
+ * We use a modular theme system:
+ * 1. theme-variables.css - Defines color variables for the print theme
+ * 2. print-theme.css - Special theme used only for printing
+ * 
+ * Light and dark themes are configured directly in tailwind.config.js
+ */
+@import "./themes/theme-variables.css";
+@import "./themes/print-theme.css";
+
+@plugin "daisyui";
 
 @layer base {
   html {
@@ -25,19 +36,40 @@
     margin: 0;
   }
   
+  /* Force font size */
   html {
     font-size: 11pt;
   }
 
-  body {
-    margin: 2cm;
+  /* Apply print theme colors directly */
+  :root {
+    --p: var(--print-theme-primary);
+    --pc: var(--print-theme-primary-content);
+    --s: var(--print-theme-secondary);
+    --sc: var(--print-theme-secondary-content);
+    --a: var(--print-theme-accent);
+    --ac: var(--print-theme-accent-content);
+    --n: var(--print-theme-neutral);
+    --nc: var(--print-theme-neutral-content);
+    --b1: var(--print-theme-base-100);
+    --b2: var(--print-theme-base-200);
+    --b3: var(--print-theme-base-300);
+    --bc: var(--print-theme-base-content);
+    --in: var(--print-theme-info);
+    --inc: var(--print-theme-info-content);
+    --su: var(--print-theme-success);
+    --suc: var(--print-theme-success-content);
+    --wa: var(--print-theme-warning);
+    --wac: var(--print-theme-warning-content);
+    --er: var(--print-theme-error);
+    --erc: var(--print-theme-error-content);
   }
 
-  /* Force light theme for printing */
-  @media print {
-    html[data-theme] {
-      data-theme: "light" !important;
-    }
+  /* Force background and text color for all elements */
+  body {
+    background-color: white !important;
+    color: hsl(var(--print-theme-base-content)) !important;
+    margin: 2cm;
   }
 
   /* Layout adjustments */
@@ -58,6 +90,9 @@
   .badge {
     font-size: 0.875rem !important;
     padding: 0.25rem 0.75rem !important;
+    background-color: hsl(var(--print-theme-base-300)) !important;
+    color: hsl(var(--print-theme-base-content)) !important;
+    border: 1px solid hsl(0 0% 90%) !important;
   }
 
   /* Spacing and breaks */
@@ -72,6 +107,7 @@
 
   h1, h2, h3, h4, h5, h6 {
     break-after: avoid;
+    color: hsl(var(--print-theme-base-content)) !important;
   }
 
   /* Ensure proper page margins */
@@ -88,5 +124,17 @@
 
   .resume-print-container > div:last-child {
     margin-bottom: 0 !important;
+  }
+  
+  /* Force text color for all elements */
+  p, li, span, div {
+    color: hsl(var(--print-theme-base-content)) !important;
+  }
+  
+  /* Ensure links are clearly visible */
+  a {
+    color: hsl(var(--print-theme-primary)) !important;
+    text-decoration: underline !important;
+    font-weight: 500 !important;
   }
 } 
