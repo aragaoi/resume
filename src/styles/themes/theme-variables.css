@@ -4,33 +4,33 @@
  * IMPORTANT: These colors are based on DaisyUI's light theme.
  * Print theme: Based on DaisyUI's light theme (optimized for printing)
  *
- * Color format: <hue> <saturation>% <lightness>%
- * Example: 271 81% 63% (purple)
+ * Color format for print theme: RGB values (r, g, b)
+ * This format ensures compatibility with PDF export tools
  */
 :root {
-  /* Print theme colors (based on DaisyUI's light theme) */
-  --print-theme-primary: 262 80% 45%;          /* oklch(45% 0.24 277.023) */
-  --print-theme-primary-focus: 262 80% 40%;
-  --print-theme-primary-content: 262 10% 93%;  /* oklch(93% 0.034 272.788) */
-  --print-theme-secondary: 354 85% 65%;        /* oklch(65% 0.241 354.308) */
-  --print-theme-secondary-focus: 354 85% 60%;
-  --print-theme-secondary-content: 342 10% 94%; /* oklch(94% 0.028 342.258) */
-  --print-theme-accent: 182 60% 77%;           /* oklch(77% 0.152 181.912) */
-  --print-theme-accent-focus: 182 60% 72%;
-  --print-theme-accent-content: 188 20% 38%;   /* oklch(38% 0.063 188.416) */
-  --print-theme-neutral: 286 2% 14%;           /* oklch(14% 0.005 285.823) */
-  --print-theme-neutral-focus: 286 2% 10%;
-  --print-theme-neutral-content: 286 1% 92%;   /* oklch(92% 0.004 286.32) */
-  --print-theme-base-100: 0 0% 100%;           /* oklch(100% 0 0) */
-  --print-theme-base-200: 0 0% 98%;            /* oklch(98% 0 0) */
-  --print-theme-base-300: 0 0% 95%;            /* oklch(95% 0 0) */
-  --print-theme-base-content: 286 2% 21%;      /* oklch(21% 0.006 285.885) */
-  --print-theme-info: 233 70% 74%;             /* oklch(74% 0.16 232.661) */
-  --print-theme-info-content: 243 25% 29%;     /* oklch(29% 0.066 243.157) */
-  --print-theme-success: 163 70% 76%;          /* oklch(76% 0.177 163.223) */
-  --print-theme-success-content: 169 30% 37%;  /* oklch(37% 0.077 168.94) */
-  --print-theme-warning: 84 80% 82%;           /* oklch(82% 0.189 84.429) */
-  --print-theme-warning-content: 46 45% 41%;   /* oklch(41% 0.112 45.904) */
-  --print-theme-error: 13 85% 71%;             /* oklch(71% 0.194 13.428) */
-  --print-theme-error-content: 12 45% 27%;     /* oklch(27% 0.105 12.094) */
+  /* Print theme colors (based on DaisyUI's light theme) - Using RGB format for compatibility */
+  --print-theme-primary: 67, 56, 202;          /* Deep indigo - #4338ca (HSL: 245 78% 51%) */
+  --print-theme-primary-focus: 49, 46, 129;    /* Darker indigo (HSL: 243 47% 34%) */
+  --print-theme-primary-content: 255, 255, 255; /* White (HSL: 0 0% 100%) */
+  --print-theme-secondary: 190, 24, 93;        /* Deep pink - #be185d (HSL: 330 79% 42%) */
+  --print-theme-secondary-focus: 157, 23, 77;  /* Darker pink (HSL: 330 74% 35%) */
+  --print-theme-secondary-content: 255, 255, 255; /* White (HSL: 0 0% 100%) */
+  --print-theme-accent: 4, 120, 87;            /* Deep green - #047857 (HSL: 161 94% 24%) */
+  --print-theme-accent-focus: 6, 95, 70;       /* Darker green (HSL: 162 88% 20%) */
+  --print-theme-accent-content: 255, 255, 255; /* White (HSL: 0 0% 100%) */
+  --print-theme-neutral: 229, 231, 235;        /* Light gray - #e5e7eb (HSL: 220 13% 91%) */
+  --print-theme-neutral-focus: 209, 213, 219;  /* Darker gray (HSL: 220 13% 84%) */
+  --print-theme-neutral-content: 17, 24, 39;   /* Very dark gray - #111827 (HSL: 222 47% 11%) */
+  --print-theme-base-100: 255, 255, 255;       /* White - #ffffff (HSL: 0 0% 100%) */
+  --print-theme-base-200: 249, 250, 251;       /* Very light gray - #f9fafb (HSL: 210 20% 98%) */
+  --print-theme-base-300: 243, 244, 246;       /* Light gray - #f3f4f6 (HSL: 214 15% 96%) */
+  --print-theme-base-content: 17, 24, 39;      /* Very dark gray - #111827 (HSL: 222 47% 11%) */
+  --print-theme-info: 29, 78, 216;             /* Deep blue - #1d4ed8 (HSL: 221 83% 48%) */
+  --print-theme-info-content: 255, 255, 255;   /* White (HSL: 0 0% 100%) */
+  --print-theme-success: 21, 128, 61;          /* Deep green - #15803d (HSL: 142 72% 29%) */
+  --print-theme-success-content: 255, 255, 255; /* White (HSL: 0 0% 100%) */
+  --print-theme-warning: 161, 98, 7;           /* Deep amber - #a16207 (HSL: 43 96% 33%) */
+  --print-theme-warning-content: 255, 255, 255; /* White (HSL: 0 0% 100%) */
+  --print-theme-error: 185, 28, 28;            /* Deep red - #b91c1c (HSL: 0 74% 42%) */
+  --print-theme-error-content: 255, 255, 255;  /* White (HSL: 0 0% 100%) */
 } 

@@ -68,7 +68,7 @@
   /* Force background and text color for all elements */
   body {
     background-color: white !important;
-    color: hsl(var(--print-theme-base-content)) !important;
+    color: rgb(var(--print-theme-base-content)) !important;
     padding: 0 !important;
     margin: 0 !important;
   }
@@ -91,9 +91,9 @@
   .badge {
     font-size: 0.875rem !important;
     padding: 0.25rem 0.75rem !important;
-    background-color: hsl(var(--print-theme-base-300)) !important;
-    color: hsl(var(--print-theme-base-content)) !important;
-    border: 1px solid hsl(0 0% 90%) !important;
+    background-color: rgb(var(--print-theme-base-300)) !important;
+    color: rgb(var(--print-theme-base-content)) !important;
+    border: 1px solid rgb(229, 231, 235) !important;
   }
 
   /* Spacing and breaks */
@@ -108,7 +108,7 @@
 
   h1, h2, h3, h4, h5, h6 {
     break-after: avoid;
-    color: hsl(var(--print-theme-base-content)) !important;
+    color: rgb(var(--print-theme-base-content)) !important;
   }
 
   /* Ensure proper page margins */
@@ -129,13 +129,20 @@
   
   /* Force text color for all elements */
   p, li, span, div {
-    color: hsl(var(--print-theme-base-content)) !important;
+    color: rgb(var(--print-theme-base-content)) !important;
   }
   
   /* Ensure links are clearly visible */
   a {
-    color: hsl(var(--print-theme-primary)) !important;
+    color: rgb(var(--print-theme-primary)) !important;
     text-decoration: underline !important;
     font-weight: 500 !important;
+  }
+  
+  /* Override any OKLCH colors for compatibility */
+  [style*="oklch"] {
+    color: rgb(17, 24, 39) !important;
+    background-color: transparent !important;
+    border-color: rgb(229, 231, 235) !important;
   }
 } 

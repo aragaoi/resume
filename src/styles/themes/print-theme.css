@@ -43,34 +43,51 @@
   --er: var(--print-theme-error);
   --erc: var(--print-theme-error-content);
   
-  /* Derived colors */
-  --primary: hsl(var(--p));
-  --primary-focus: hsl(var(--pf));
-  --primary-content: hsl(var(--pc));
+  /* Derived colors - using RGB format for compatibility */
+  --primary: rgb(var(--p));
+  --primary-focus: rgb(var(--pf));
+  --primary-content: rgb(var(--pc));
   
-  --secondary: hsl(var(--s));
-  --secondary-focus: hsl(var(--sf));
-  --secondary-content: hsl(var(--sc));
+  --secondary: rgb(var(--s));
+  --secondary-focus: rgb(var(--sf));
+  --secondary-content: rgb(var(--sc));
   
-  --accent: hsl(var(--a));
-  --accent-focus: hsl(var(--af));
-  --accent-content: hsl(var(--ac));
+  --accent: rgb(var(--a));
+  --accent-focus: rgb(var(--af));
+  --accent-content: rgb(var(--ac));
   
-  --neutral: hsl(var(--n));
-  --neutral-focus: hsl(var(--nf));
-  --neutral-content: hsl(var(--nc));
+  --neutral: rgb(var(--n));
+  --neutral-focus: rgb(var(--nf));
+  --neutral-content: rgb(var(--nc));
   
-  --base-100: hsl(var(--b1));
-  --base-200: hsl(var(--b2));
-  --base-300: hsl(var(--b3));
-  --base-content: hsl(var(--bc));
+  --base-100: rgb(var(--b1));
+  --base-200: rgb(var(--b2));
+  --base-300: rgb(var(--b3));
+  --base-content: rgb(var(--bc));
   
-  --info: hsl(var(--in));
-  --info-content: hsl(var(--inc));
-  --success: hsl(var(--su));
-  --success-content: hsl(var(--suc));
-  --warning: hsl(var(--wa));
-  --warning-content: hsl(var(--wac));
-  --error: hsl(var(--er));
-  --error-content: hsl(var(--erc));
+  --info: rgb(var(--in));
+  --info-content: rgb(var(--inc));
+  
+  --success: rgb(var(--su));
+  --success-content: rgb(var(--suc));
+  
+  --warning: rgb(var(--wa));
+  --warning-content: rgb(var(--wac));
+  
+  --error: rgb(var(--er));
+  --error-content: rgb(var(--erc));
+  
+  /* Border radius */
+  --rounded-box: 0.25rem;
+  --rounded-btn: 0.125rem;
+  --rounded-badge: 0.125rem;
+  
+  /* Responsive radius */
+  --animation-btn: 0;
+  --animation-input: 0;
+  
+  /* Border width */
+  --border-btn: 1px;
+  --tab-border: 1px;
+  --tab-radius: 0.25rem;
 } 
