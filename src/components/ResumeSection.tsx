@@ -27,24 +27,17 @@ export const ResumeSection: React.FC<ResumeSectionProps> = ({ section, isPrint }
                     {item.period.end ? ` - ${item.period.end}` : ' - Present'}
                   </div>
                 )}
-                {item.date &&
-                  !item.period &&
-                  (isPrint ? (
-                    <span className="text-sm opacity-70">{item.date}</span>
-                  ) : (
-                    <div className="badge badge-lg badge-secondary print:badge-md">{item.date}</div>
-                  ))}
               </div>
               {item.description && (
                 <p className="opacity-75 mt-2 whitespace-pre-line print:text-sm">
                   {item.description}
                 </p>
               )}
-              {item.details && item.details.length > 0 && (
+              {item.content && item.content.length > 0 && (
                 <ul className="mt-4 list-disc list-inside space-y-2 print:mt-2 print:space-y-1">
-                  {item.details.map((detail, detailIndex) => (
-                    <li key={detailIndex} className="opacity-75 print:text-sm">
-                      {detail}
+                  {item.content.map((contentItem, contentIndex) => (
+                    <li key={contentIndex} className="opacity-75 print:text-sm">
+                      {contentItem}
                     </li>
                   ))}
                 </ul>

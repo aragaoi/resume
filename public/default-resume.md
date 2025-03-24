@@ -9,7 +9,7 @@ Location: San Francisco, CA
 
 ## Senior Software Engineer at TechCorp
 
-2020 - Present
+January 2020 - Present
 
 - Led development of cloud-native applications using React and Node.js
 - Managed team of 5 developers and implemented agile methodologies
@@ -19,7 +19,7 @@ Location: San Francisco, CA
 
 ## Software Developer at WebSolutions
 
-2018 - 2020
+March 2018 - December 2020
 
 - Developed full-stack web applications using modern JavaScript frameworks
 - Collaborated with UX team to implement responsive designs
@@ -52,7 +52,7 @@ Location: San Francisco, CA
 ## Stanford University
 
 Master of Science in Computer Science
-2016 - 2018
+August 2016 - May 2018
 
 - Focus on Artificial Intelligence and Machine Learning
 - GPA: 3.8/4.0
@@ -60,7 +60,7 @@ Master of Science in Computer Science
 ## University of California, Berkeley
 
 Bachelor of Science in Computer Science
-2012 - 2016
+August 2012 - May 2016
 
 - Minor in Mathematics
 - Dean's List: 2014-2016
@@ -68,17 +68,17 @@ Bachelor of Science in Computer Science
 # Certifications
 
 ## AWS Certified Solutions Architect
+### Amazon Web Services
 
-Amazon Web Services
-2021
+June 2021
 
 - Achieved Professional level certification
 - Specialized in serverless architecture
 
 ## Google Cloud Professional
+### Google Cloud
 
-Google Cloud
-2020
+March 2020
 
 - Completed Cloud Architecture certification
 - Expert in cloud infrastructure design

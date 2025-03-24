@@ -3,36 +3,51 @@ import { parseMarkdown } from './parsers/markdown';
 import { parseYaml } from './parsers/yaml';
 import { parseJson } from './parsers/json';
 import { Resume } from '../types/Resume';
-import { ParserNormalizer } from './parsers/parser-utils';
 
 export type FileFormat = 'json' | 'yaml' | 'md' | 'txt';
 
-export const parseContent = (content: string, format: FileFormat): Resume => {
-  let resume: Resume;
+/**
+ * Normalizes a resume by setting end date equal to start date for items with only start date
+ * This ensures consistent rendering in the PDF generator
+ */
+export const normalizeResumeDates = (resume: Resume): Resume => {
+  if (!resume.sections) return resume;
 
-  // Parse content based on file format
+  resume.sections.forEach((section) => {
+    if (!section.items) return;
+
+    section.items.forEach((item) => {
+      // If an item has period with only a start date, set end date equal to start date
+      if (item.period && item.period.start && !item.period.end) {
+        item.period.end = item.period.start;
+      }
+    });
+  });
+
+  return resume;
+};
+
+export const parseContent = (content: string, format: FileFormat): Resume => {
+  let parsedResume: Resume;
+
+  // Parse based on format
   switch (format) {
     case 'json':
-      resume = parseJson(content);
+      parsedResume = parseJson(content);
       break;
     case 'yaml':
-      resume = parseYaml(content);
+      parsedResume = parseYaml(content);
       break;
     case 'md':
-      resume = parseMarkdown(content);
+      parsedResume = parseMarkdown(content);
       break;
     case 'txt':
-      resume = parsePlainText(content);
+      parsedResume = parsePlainText(content);
       break;
     default:
       throw new Error(`Unsupported format: ${format}`);
   }
 
-  // Normalize each section and its items
-  resume.sections = resume.sections.map((section) => {
-    section.items = section.items.map(ParserNormalizer.normalizeResumeItem);
-    return section;
-  });
-
-  return resume;
+  // Normalize dates before returning
+  return normalizeResumeDates(parsedResume);
 };

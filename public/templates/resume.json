@@ -89,11 +89,11 @@
       "content": [
         {
           "title": "[Certification Name]",
+          "subtitle": "[Issuing Organization]",
           "period": {
             "start": "[Issue Date]"
           },
           "content": [
-            "[Issuing Organization]",
             "[Relevant skills or knowledge gained]",
             "[Score or achievement if applicable]"
           ]

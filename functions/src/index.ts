@@ -9,7 +9,7 @@
 
 import * as functions from 'firebase-functions';
 import cors from 'cors';
-import { ResumeData } from '../../src/lib/pdfGenerator';
+import { Resume } from '../../src/types/Resume';
 
 // Configure CORS middleware
 const corsHandler = cors({ origin: true });
@@ -27,7 +27,7 @@ export const generateResumePdf = functions.https.onRequest((request, response) =
       }
 
       // Parse the resume data from the request body
-      const resumeData: ResumeData = request.body;
+      const resumeData: Resume = request.body;
       if (!resumeData || !resumeData.name) {
         response.status(400).send('Invalid resume data');
         return;
@@ -42,11 +42,11 @@ export const generateResumePdf = functions.https.onRequest((request, response) =
       // Generate the PDF
       const pdfBytes = await pdfGenerator.generateResumePdf(resumeData);
 
-      // Set appropriate headers for PDF download
+      // Set appropriate headers for PDF viewing in the browser
       response.setHeader('Content-Type', 'application/pdf');
       response.setHeader(
         'Content-Disposition',
-        `attachment; filename="${resumeData.name.replace(/\s+/g, '_')}_Resume.pdf"`
+        `inline; filename="${resumeData.name.replace(/\s+/g, '_')}_Resume.pdf"`
       );
 
       // Send the PDF bytes

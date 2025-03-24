@@ -45,13 +45,13 @@ export default function PdfExportButton({
         console.log(`Section: ${section.title}, Items: ${section.items.length}`);
         if (section.title.toLowerCase() === 'skills') {
           section.items.forEach((item: any, index: number) => {
-            const hasDetails = item.details?.length > 0;
-            console.log(`  Skill ${index}: ${item.title}, hasDetails: ${hasDetails}`);
+            const hasContent = item.content?.length > 0;
+            console.log(`  Skill ${index}: ${item.title}, hasContent: ${hasContent}`);
 
-            if (hasDetails) {
+            if (hasContent) {
               console.log(
-                `    Details items (first 3): ${item.details.slice(0, 3).join(', ')}${
-                  item.details.length > 3 ? '...' : ''
+                `    Content items (first 3): ${item.content.slice(0, 3).join(', ')}${
+                  item.content.length > 3 ? '...' : ''
                 }`
               );
             }
@@ -79,17 +79,16 @@ export default function PdfExportButton({
       // Get the PDF as a blob
       const pdfBlob = await response.blob();
 
-      // Create a download link and trigger it
-      const downloadUrl = URL.createObjectURL(pdfBlob);
-      const downloadLink = document.createElement('a');
-      downloadLink.href = downloadUrl;
-      downloadLink.download = fileName;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
+      // Create a blob URL for the PDF
+      const blobUrl = URL.createObjectURL(pdfBlob);
 
-      // Clean up
-      document.body.removeChild(downloadLink);
-      URL.revokeObjectURL(downloadUrl);
+      // Open the PDF in a new tab
+      window.open(blobUrl, '_blank');
+
+      // Clean up the blob URL after a delay to ensure the browser has time to open it
+      setTimeout(() => {
+        URL.revokeObjectURL(blobUrl);
+      }, 1000);
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert('Failed to generate PDF. Please try again.');

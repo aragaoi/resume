@@ -25,15 +25,10 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Always start with default theme to avoid hydration mismatch
   const [theme, setTheme] = useState<Theme>(DEFAULT_THEME);
-  // Track if we've mounted to avoid hydration mismatches
-  const [mounted, setMounted] = useState(false);
 
-  // Initialize theme from localStorage or system preference only after mounting
+  // Initialize theme from localStorage or system preference
   useEffect(() => {
-    setMounted(true);
-
     // Check if theme is stored in localStorage
     const storedTheme = localStorage.getItem('theme') as Theme | null;
 
@@ -43,28 +38,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       // If no stored theme but system prefers dark mode
       setTheme(ThemeName.DARK);
     }
-
-    // Set up media query listener for system preference changes
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e: MediaQueryListEvent) => {
-      const storedTheme = localStorage.getItem('theme') as Theme | null;
-      // Only update theme automatically if user hasn't explicitly set a preference
-      if (!storedTheme) {
-        setTheme(e.matches ? ThemeName.DARK : ThemeName.LIGHT);
-      }
-    };
-
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  // Update data-theme attribute and localStorage when theme changes, but only after component is mounted
+  // Update data-theme attribute and localStorage when theme changes
   useEffect(() => {
-    if (mounted) {
-      document.documentElement.setAttribute('data-theme', theme);
-      localStorage.setItem('theme', theme);
-    }
-  }, [theme, mounted]);
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>;
 }

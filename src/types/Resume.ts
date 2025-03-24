@@ -12,18 +12,26 @@ export interface Period {
 export interface ResumeItem {
   title: string;
   subtitle?: string;
-  date?: string;
+
+  // Unified time representation
+  // Instead of having both date and period, use only period
+  // For simple dates, just use start field of period
   period?: Period;
+
   description?: string;
-  details?: string[];
+
+  // List content - bullet points, skill items, etc.
   content?: string[];
+
+  // Tags are kept separate as they serve a different purpose
   tags?: string[];
-  items?: ResumeItem[]; // For nested items like skills categories
+
+  // For nested items like skills categories
+  items?: ResumeItem[];
 }
 
 export interface ResumeSection {
   title: string;
-  period?: Period;
   items: ResumeItem[];
 }
 

@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=../src/schemas/resume.schema.yml
+# yaml-language-server: $schema=../../src/schemas/resume.schema.yml
 name: '[Full Name]'
 title: '[Current Title]'
 contact:
@@ -56,9 +56,9 @@ sections:
   - title: 'Certifications'
     content:
       - title: '[Certification Name]'
+        subtitle: '[Issuing Organization]'
         period:
           start: '[Issue Date]'
         content:
-          - '[Issuing Organization]'
           - '[Relevant skills or knowledge gained]'
           - '[Score or achievement if applicable]'

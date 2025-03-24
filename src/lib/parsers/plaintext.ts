@@ -2,8 +2,19 @@ import { Resume, ResumeSection, ResumeItem, Period, Website } from '../../types/
 import { parseWebsiteType } from './website';
 
 const parsePeriod = (text: string): Period | undefined => {
-  // Look for patterns like "January 2020 - Present" or "2015 - 2019"
-  const periodMatch = text.match(/(\d{4}(?:[-\/]\d{2})?)\s+-\s+(.+)/);
+  // Support for multiple date formats:
+  // - Full month name + year (January 2020)
+  // - Month abbreviation + year (Jan 2020)
+  // - MM/YYYY (01/2020)
+  // - MM-YYYY (01-2020)
+  // - MM/YY (01/20)
+  // - MM-YY (01-20)
+  // - YYYY/MM (2020/01)
+  // - YYYY-MM (2020-01)
+  // - YYYY (2020)
+  const periodMatch = text.match(
+    /((?:[a-zA-Z]{3,}\.?|[a-zA-Z]{3})[\s.]?\d{4}|(?:\d{1,2}[-\/]\d{2,4}|\d{4}[-\/]\d{1,2}|\d{1,2}[\/]\d{2}|\d{4}))\s*[-–]\s*(.+)/
+  );
   if (periodMatch) {
     return {
       start: periodMatch[1].trim(),
@@ -15,8 +26,34 @@ const parsePeriod = (text: string): Period | undefined => {
 
 // Check if a line is likely a date-related line
 const isDateLine = (line: string): boolean => {
-  // Count numbers and letters in the line
   const trimmedLine = line.trim();
+
+  // Check for common date patterns
+  const containsYear = /\b\d{4}\b/.test(trimmedLine); // Has a 4-digit year
+  const containsYearShort = /\b\d{2}\b/.test(trimmedLine) && /[\/\-]/.test(trimmedLine); // Has a 2-digit year with slash or dash
+
+  // Match month names or abbreviations
+  const monthRegex =
+    /\b(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\.?\b/i;
+  const containsMonthName = monthRegex.test(trimmedLine);
+
+  // Match date formats like MM/YY, MM-YY, etc.
+  const containsFormattedDate =
+    /\b\d{1,2}[-\/]\d{2,4}\b/.test(trimmedLine) || /\b\d{4}[-\/]\d{1,2}\b/.test(trimmedLine);
+
+  // Match range indicators
+  const containsDateRange = /\s[-–]\s/.test(trimmedLine);
+
+  // Check for various date patterns
+  if (
+    (containsMonthName && (containsYear || containsYearShort)) ||
+    containsFormattedDate ||
+    ((containsYear || containsYearShort) && (trimmedLine.length < 20 || containsDateRange))
+  ) {
+    return true;
+  }
+
+  // Fallback to the old number-based heuristic
   const numbers = trimmedLine.replace(/[^0-9]/g, '').length;
   const letters = trimmedLine.replace(/[^a-zA-Z]/g, '').length;
 
@@ -257,19 +294,30 @@ export function parsePlainText(content: string): Resume {
         }
 
         // Check if this is a date line
-        if (isDateLine(line) && currentSection) {
+        if (isDateLine(line)) {
           // If we have a previous item, add the date
           if (currentSection.items.length > 0) {
             const lastItem = currentSection.items[currentSection.items.length - 1];
-            if (!lastItem.date) {
-              lastItem.date = line;
+            if (!lastItem.period) {
+              const period = parsePeriod(line);
+              if (period) {
+                lastItem.period = period;
+              } else if (!lastItem.period) {
+                lastItem.period = {
+                  start: line,
+                };
+              }
             }
           } else {
             // If no previous item, create a placeholder that will be attached to the next item
             currentItem = {
               title: '',
-              date: line,
+              period: {
+                start: line,
+              },
             };
+            currentSection.items.push(currentItem);
+            currentItem = null;
           }
         } else {
           // Regular item title
@@ -284,13 +332,16 @@ export function parsePlainText(content: string): Resume {
 
           // Add period if available
           if (periodLine) {
-            // Try to parse as a period first
+            // Try to process as a date line
+            // Date lines are either one date or a range of dates
             const period = parsePeriod(periodLine);
             if (period) {
               currentItem.period = period;
-            } else if (isDateLine(periodLine)) {
-              // If not a period but still a date, use as date
-              currentItem.date = periodLine;
+            } else {
+              // Single date
+              currentItem.period = {
+                start: periodLine,
+              };
             }
           }
         }
@@ -298,26 +349,26 @@ export function parsePlainText(content: string): Resume {
       continue;
     }
 
-    // Bullet points become details
+    // Bullet points become content
     if (line.startsWith('-')) {
       const detail = line.substring(1).trim();
 
       // Add to the appropriate item
       if (currentItem) {
-        if (!currentItem.details) {
-          currentItem.details = [];
+        if (!currentItem.content) {
+          currentItem.content = [];
         }
-        currentItem.details.push(detail);
+        currentItem.content.push(detail);
       } else if (currentSubsection) {
-        if (!currentSubsection.details) {
-          currentSubsection.details = [];
+        if (!currentSubsection.content) {
+          currentSubsection.content = [];
         }
-        currentSubsection.details.push(detail);
+        currentSubsection.content.push(detail);
       } else if (currentSection) {
         // Create a generic item for the bullet point if no current item
         currentItem = {
           title: '',
-          details: [detail],
+          content: [detail],
         };
         currentSection.items.push(currentItem);
         currentItem = null;
@@ -371,35 +422,38 @@ export function parsePlainText(content: string): Resume {
 
   // Post-processing to consolidate related items in all sections
   for (const section of uniqueSections) {
-    // Group items that might be related (title + subtitle/date combinations)
+    // Group items that might be related (title + subtitle/period combinations)
+    if (section.items.length < 2) continue;
+
     const processedItems: ResumeItem[] = [];
-    const itemsToProcess = [...section.items];
+    let lastItem: ResumeItem | null = null;
 
-    // Process items with titles first
-    const titledItems = itemsToProcess.filter((item) => item.title && item.title.trim() !== '');
-    const untitledItems = itemsToProcess.filter((item) => !item.title || item.title.trim() === '');
+    for (const item of section.items) {
+      if (!lastItem) {
+        lastItem = { ...item };
+        processedItems.push(lastItem);
+        continue;
+      }
 
-    // Add titled items first
-    for (const item of titledItems) {
-      processedItems.push(item);
-    }
-
-    // Then add untitled items (usually bullet points without a header)
-    for (const item of untitledItems) {
-      // Try to find a related item to attach to
-      const lastItem = processedItems[processedItems.length - 1];
-      if (lastItem && !item.title) {
-        // Merge details
-        if (item.details) {
-          if (!lastItem.details) {
-            lastItem.details = [];
-          }
-          lastItem.details.push(...item.details);
+      // See if this item should be merged with the last one
+      if (!item.title && lastItem.title) {
+        // Merge period if not present
+        if (item.period && !lastItem.period) {
+          lastItem.period = item.period;
         }
-
-        // Merge date if not present
-        if (item.date && !lastItem.date) {
-          lastItem.date = item.date;
+        // Merge content
+        if (item.content) {
+          if (!lastItem.content) {
+            lastItem.content = [];
+          }
+          lastItem.content.push(...item.content);
+        }
+        // For backward compatibility, also merge details if present
+        if ((item as any).details) {
+          if (!lastItem.content) {
+            lastItem.content = [];
+          }
+          lastItem.content.push(...(item as any).details);
         }
       } else {
         // If can't find a related item, add as is
@@ -408,6 +462,55 @@ export function parsePlainText(content: string): Resume {
     }
 
     section.items = processedItems;
+  }
+
+  // Merge duplicated items
+  const mergedSections: ResumeSection[] = [];
+  for (const section of uniqueSections) {
+    const mergedSection = { ...section };
+
+    // Merge items with the same title in each section
+    if (section.items.length > 1) {
+      const mergedItems: ResumeItem[] = [];
+      const seenTitles = new Set<string>();
+
+      for (const item of section.items) {
+        if (!item.title) continue;
+
+        const existingItem = mergedItems.find((mi) => mi.title === item.title);
+        if (existingItem) {
+          // Merge the items
+          if (item.subtitle) existingItem.subtitle = item.subtitle;
+          if (item.period) existingItem.period = item.period;
+          if (item.description) existingItem.description = item.description;
+
+          // Merge content
+          if (item.content) {
+            if (!existingItem.content) {
+              existingItem.content = [];
+            }
+            existingItem.content.push(...item.content);
+          }
+
+          // For backward compatibility, also merge details if present
+          if ((item as any).details) {
+            if (!existingItem.content) {
+              existingItem.content = [];
+            }
+            existingItem.content.push(...(item as any).details);
+          }
+
+          // Merge any other fields as needed
+        } else {
+          mergedItems.push({ ...item });
+          seenTitles.add(item.title);
+        }
+      }
+
+      mergedSection.items = mergedItems;
+    }
+
+    mergedSections.push(mergedSection);
   }
 
   return {
@@ -419,6 +522,6 @@ export function parsePlainText(content: string): Resume {
       location,
       websites,
     },
-    sections: uniqueSections,
+    sections: mergedSections,
   };
 }

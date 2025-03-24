@@ -70,7 +70,7 @@ Bachelor of Science in Computer Science
     expect(result.sections[0].items[0].period?.start).toBe('2020');
     expect(result.sections[0].items[0].period?.end).toBeUndefined();
     expect(result.sections[0].items[0].description).toBe('Led development team at a tech company.');
-    expect(result.sections[0].items[0].details).toHaveLength(3);
+    expect(result.sections[0].items[0].content).toHaveLength(3);
 
     expect(result.sections[1].title).toBe('Education');
     expect(result.sections[1].items[0].title).toBe('University of Technology');
@@ -108,14 +108,14 @@ Bachelor of Science in Computer Science
     expect(result.sections[0].items[0].items).toBeDefined();
     expect(result.sections[0].items[0].items!.length).toBe(2);
     expect(result.sections[0].items[0].items![0].title).toBe('JavaScript');
-    // The parser initializes details as empty arrays
-    expect(result.sections[0].items[0].items![0].details).toEqual([]);
+    // The parser initializes content as empty arrays
+    expect(result.sections[0].items[0].items![0].content).toEqual([]);
     expect(result.sections[0].items[0].items![1].title).toBe('Python');
-    expect(result.sections[0].items[0].items![1].details).toEqual([]);
+    expect(result.sections[0].items[0].items![1].content).toEqual([]);
 
     // Check projects section
     expect(result.sections[1].title).toBe('Projects');
     expect(result.sections[1].items[0].title).toBe('Portfolio Website');
-    expect(result.sections[1].items[0].details).toEqual(['Built with React', 'Responsive design']);
+    expect(result.sections[1].items[0].content).toEqual(['Built with React', 'Responsive design']);
   });
 });

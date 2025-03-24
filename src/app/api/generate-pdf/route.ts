@@ -1,36 +1,33 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { generateResumePdf, ResumeData } from '../../../lib/pdfGenerator';
+import { generateResumePdf } from '../../../lib/pdfGenerator';
+import { Resume } from '../../../types/Resume';
+import { NextResponse } from 'next/server';
 
 /**
- * Local API route for PDF generation
- * This allows testing the PDF generation without deploying to Firebase
- * POST /api/generate-pdf
+ * API route for generating a PDF from a JSON Resume
  */
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    // Parse the resume data from the request body
-    const resumeData: ResumeData = await request.json();
+    console.log('Received request to generate PDF');
+
+    // Get the resume data from the request body
+    const resumeData: Resume = await request.json();
 
     if (!resumeData || !resumeData.name) {
       return NextResponse.json({ error: 'Invalid resume data' }, { status: 400 });
     }
 
-    // Generate the PDF
+    // Generate the PDF using our library
     const pdfBytes = await generateResumePdf(resumeData);
 
-    // Create a response with the PDF data
-    const response = new NextResponse(pdfBytes);
-
-    // Set appropriate headers for PDF download
-    response.headers.set('Content-Type', 'application/pdf');
-    response.headers.set(
-      'Content-Disposition',
-      `attachment; filename="${resumeData.name.replace(/\s+/g, '_')}_Resume.pdf"`
-    );
-
-    return response;
+    // Return the PDF as a blob with inline disposition for viewing in the browser
+    return new Response(pdfBytes, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `inline; filename="${resumeData.name.replace(/\s+/g, '_')}_Resume.pdf"`,
+      },
+    });
   } catch (error) {
     console.error('Error generating PDF:', error);
-    return NextResponse.json({ error: 'Error generating PDF' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to generate PDF' }, { status: 500 });
   }
 }

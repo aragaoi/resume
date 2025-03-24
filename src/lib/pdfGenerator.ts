@@ -1,5 +1,15 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-import { Resume } from '../types/Resume';
+import { Resume, ResumeSection } from '../types/Resume';
+
+/**
+ * Enum for section types to determine rendering approach
+ */
+enum SectionType {
+  SUMMARY = 'summary',
+  TIMELINE = 'timeline', // Experience, Education, Certificates, etc.
+  SKILLS = 'skills',
+  LIST = 'list',
+}
 
 /**
  * Generates a PDF resume from provided data
@@ -193,289 +203,345 @@ export async function generateResumePdf(resume: Resume): Promise<Uint8Array> {
     }
   }
 
-  // Find sections by title
-  const findSectionByTitle = (title: string) =>
-    resume.sections.find((section) => section.title.toLowerCase() === title.toLowerCase());
+  // Determine section type based on content structure and title
+  const getSectionType = (section: ResumeSection): SectionType => {
+    const title = section.title.toLowerCase();
 
-  // Add Summary if available
-  const summarySection = findSectionByTitle('summary');
-  if (summarySection && summarySection.items.length > 0 && summarySection.items[0].description) {
-    currentY = addSectionTitle('SUMMARY');
-    currentY = addText(summarySection.items[0].description, { fontSize: 10 });
-  }
+    // Summary is a special case with different structure
+    if (title === 'summary') {
+      return SectionType.SUMMARY;
+    }
 
-  // Add Experience section
-  const experienceSection = findSectionByTitle('experience');
-  if (experienceSection && experienceSection.items.length > 0) {
-    currentY = addSectionTitle('EXPERIENCE');
+    // Skills typically have nested items or content lists
+    if (title === 'skills') {
+      return SectionType.SKILLS;
+    }
 
-    for (const job of experienceSection.items) {
-      // Check if we need a new page (estimate space needed for job entry)
-      const achievementsSpace = job.details ? job.details.length * 15 : 0;
-      const jobEntrySpace = 70 + achievementsSpace; // Base space for job entry + achievements
-      checkAndAddNewPageIfNeeded(jobEntrySpace);
+    // Check if section has timeline-like items (with dates/periods)
+    if (section.items?.some((item) => item.period)) {
+      return SectionType.TIMELINE;
+    }
+
+    // Default to list type for anything else
+    return SectionType.LIST;
+  };
+
+  // Render summary section (single paragraph)
+  const renderSummarySection = (section: ResumeSection) => {
+    currentY = addSectionTitle(section.title.toUpperCase());
+
+    if (section.items && section.items.length > 0 && section.items[0].description) {
+      currentY = addText(section.items[0].description, { fontSize: 10 });
+    }
+  };
+
+  // Render timeline section (experience, education, certificates, etc.)
+  const renderTimelineSection = (section: ResumeSection) => {
+    currentY = addSectionTitle(section.title.toUpperCase());
+
+    if (!section.items || section.items.length === 0) {
+      currentY = addText('No items in this section', {
+        fontSize: 10,
+        color: rgb(0.4, 0.4, 0.4),
+      });
+      return;
+    }
+
+    for (const item of section.items) {
+      // Calculate required space
+      const contentSpace = item.content ? item.content.length * 15 : 0;
+      const itemSpace = 70 + contentSpace; // Base space + content
+      checkAndAddNewPageIfNeeded(itemSpace);
 
       currentY -= 10;
 
-      // Company and Position
-      currentY = addText(`${job.title} at ${job.subtitle || ''}`, {
-        fontSize: 12,
-        font: helveticaBold,
-        checkNewPage: false, // Already checked above
-      });
-
-      // Dates
+      // Get the date text first to determine the layout
       let dateText = '';
-      if (job.period) {
-        dateText = job.period.end
-          ? `${job.period.start} - ${job.period.end}`
-          : `${job.period.start} - Present`;
-      } else if (job.date) {
-        dateText = job.date;
+      let isSingleDateItem = false;
+
+      if (item.period) {
+        // Check if this is a single-date item (start and end dates are the same)
+        isSingleDateItem = item.period.start === item.period.end;
+
+        // For single date items (like certifications), just show the start date
+        if (isSingleDateItem) {
+          dateText = item.period.start;
+        } else {
+          // For date ranges (like jobs and education), use the full date range
+          dateText = item.period.end
+            ? `${item.period.start} - ${item.period.end}`
+            : `${item.period.start} - Present`;
+        }
       }
 
-      if (dateText) {
+      // Special handling for items with single dates (like certifications)
+      if (isSingleDateItem && dateText) {
+        // Draw the year first
         currentY = addText(dateText, {
           fontSize: 10,
           color: rgb(0.4, 0.4, 0.4),
-          checkNewPage: false, // Already checked above
+          checkNewPage: false,
+        });
+
+        // Add spacing after the year
+        currentY -= 5;
+      }
+
+      // Title and subtitle
+      let titleText = item.title;
+      if (item.subtitle) {
+        if (section.title.toLowerCase() === 'experience') {
+          titleText += ` at ${item.subtitle}`;
+        } else {
+          currentY = addText(item.title, {
+            fontSize: 12,
+            font: helveticaBold,
+            checkNewPage: false,
+          });
+
+          // Add subtitle with extra spacing
+          currentY = addText(item.subtitle, {
+            fontSize: 11,
+            y: currentY - 5, // Add extra spacing before subtitle
+            checkNewPage: false,
+          });
+
+          // Add extra spacing after subtitle
+          currentY -= 5;
+        }
+      }
+
+      // If we didn't render separately above
+      if (!item.subtitle || section.title.toLowerCase() === 'experience') {
+        currentY = addText(titleText, {
+          fontSize: 12,
+          font: helveticaBold,
+          checkNewPage: false,
+        });
+      }
+
+      // Dates - Only show dates here if not already shown for single-date items
+      if (dateText && !isSingleDateItem) {
+        currentY = addText(dateText, {
+          fontSize: 10,
+          color: rgb(0.4, 0.4, 0.4),
+          checkNewPage: false,
         });
       }
 
       // Description
-      if (job.description) {
-        currentY = addText(job.description, {
+      if (item.description) {
+        currentY = addText(item.description, {
           fontSize: 10,
           y: currentY - 5,
-          checkNewPage: false, // Already checked above
+          checkNewPage: false,
         });
       }
 
-      // Achievements
-      if (job.details && job.details.length > 0) {
+      // Content/bullet points
+      if (item.content && item.content.length > 0) {
         currentY -= 5;
-
-        // Check if we need a new page for the achievements heading
-        if (currentY - 15 < minBottomMargin) {
-          page = pdfDoc.addPage([pageWidth, pageHeight]);
-          currentY = page.getHeight() - margin;
-        }
-
-        currentY = addText('Key Achievements:', {
-          fontSize: 10,
-          font: helveticaBold,
-          checkNewPage: false, // Already checked above
-        });
-
-        for (const achievement of job.details) {
-          // Check if we need a new page for each achievement
+        for (const contentItem of item.content) {
+          // Check if we need a new page for each content item
           if (currentY - 15 < minBottomMargin) {
             page = pdfDoc.addPage([pageWidth, pageHeight]);
             currentY = page.getHeight() - margin;
-            console.log(`Adding new page for achievement, currentY: ${currentY}`);
           }
 
-          currentY = addText(`• ${achievement}`, {
+          currentY = addText(`• ${contentItem}`, {
             fontSize: 10,
             indent: 10,
             y: currentY - 3,
-            checkNewPage: false, // Already checked above
+            checkNewPage: false,
           });
         }
       }
     }
-  }
+  };
 
-  // Add Education section
-  const educationSection = findSectionByTitle('education');
-  if (educationSection && educationSection.items.length > 0) {
-    currentY = addSectionTitle('EDUCATION');
+  // Render skills section (categories and lists)
+  const renderSkillsSection = (section: ResumeSection) => {
+    currentY = addSectionTitle(section.title.toUpperCase());
 
-    for (const edu of educationSection.items) {
-      // Check if we need a new page - be more conservative with space estimation
-      const entryHeight = 80; // Estimate more height for each education entry
-      if (checkAndAddNewPageIfNeeded(entryHeight)) {
-        console.log(`Added new page for education entry: ${edu.title}`);
-      }
-
-      currentY -= 10;
-
-      // Institution and Degree
-      currentY = addText(edu.subtitle || '', {
-        fontSize: 12,
-        font: helveticaBold,
-        checkNewPage: false, // Already checked above
+    if (!section.items || section.items.length === 0) {
+      currentY = addText('No skills listed', {
+        fontSize: 10,
+        color: rgb(0.4, 0.4, 0.4),
       });
-      currentY = addText(edu.title, {
-        fontSize: 11,
-        checkNewPage: false, // Already checked above
-      });
-
-      // Dates
-      let dateText = '';
-      if (edu.period) {
-        dateText = edu.period.end
-          ? `${edu.period.start} - ${edu.period.end}`
-          : `${edu.period.start} - Present`;
-      } else if (edu.date) {
-        dateText = edu.date;
-      }
-
-      if (dateText) {
-        currentY = addText(dateText, {
-          fontSize: 10,
-          color: rgb(0.4, 0.4, 0.4),
-          checkNewPage: false, // Already checked above
-        });
-      }
-
-      // Description
-      if (edu.description) {
-        currentY = addText(edu.description, {
-          fontSize: 10,
-          y: currentY - 5,
-          checkNewPage: false, // Already checked above
-        });
-      }
+      return;
     }
-  }
 
-  // Add Skills section
-  const skillsSection = findSectionByTitle('skills');
-  if (skillsSection && skillsSection.items.length > 0) {
-    currentY = addSectionTitle('SKILLS');
+    // Process each skill category
+    for (let i = 0; i < section.items.length; i++) {
+      const skillCategory = section.items[i];
 
-    // First find out how many skills we have to allocate proper space
-    const totalSkillCategories = skillsSection.items.length;
-    console.log(`Processing ${totalSkillCategories} skill categories`);
-
-    for (let i = 0; i < skillsSection.items.length; i++) {
-      const skillCategory = skillsSection.items[i];
-
-      // Check if we need a new page, being more conservative with space estimation
-      // We need more space for the first skill category to account for the section title
+      // Check if we need a new page
       const isFirstSkill = i === 0;
-      const skillHeight = isFirstSkill ? 40 : 20; // Estimate more height per skill category
+      const skillHeight = isFirstSkill ? 40 : 20;
 
       if (currentY < skillHeight + minBottomMargin) {
         page = pdfDoc.addPage([pageWidth, pageHeight]);
         currentY = page.getHeight() - margin;
-        console.log(`Added new page for skill category: ${skillCategory.title}`);
       }
 
-      currentY -= 15; // Increase vertical space before each category
+      currentY -= 15;
 
-      // Draw the category name
+      // Draw category name
       currentY = addText(`${skillCategory.title}:`, {
         fontSize: 12,
         font: helveticaBold,
-        checkNewPage: false, // We already checked above
+        checkNewPage: false,
       });
 
-      // Get skills list from details field which is how all parsers now store list items
+      // Get skills from content
       let skillItems: string[] = [];
-
-      // All parsers now store lists in the details field after normalization
-      if (skillCategory.details && skillCategory.details.length > 0) {
-        skillItems = skillCategory.details;
-        console.log(
-          `Found ${skillItems.length} skills in details of category ${skillCategory.title}`
-        );
-      } else {
-        console.log(`No skills found in category ${skillCategory.title}`);
+      if (skillCategory.content && skillCategory.content.length > 0) {
+        skillItems = skillCategory.content.filter(Boolean);
       }
 
-      // Filter out empty skills
-      skillItems = skillItems.filter(Boolean);
-
-      // Split skills into manageable chunks
+      // Render skills in chunks
       if (skillItems.length > 0) {
-        // For skills, join with less text to ensure proper text wrapping
         const skillChunks: string[] = [];
 
-        console.log(`Processing ${skillItems.length} skills in category ${skillCategory.title}`);
-
-        // Split skills into smaller chunks (maximum 4 skills per line)
+        // Split into chunks of 4 skills per line
         for (let i = 0; i < skillItems.length; i += 4) {
           skillChunks.push(skillItems.slice(i, i + 4).join(', '));
         }
 
-        // Add a small indent for all skill items
         const indent = 15;
 
         for (const chunk of skillChunks) {
           if (currentY < minBottomMargin + 20) {
             page = pdfDoc.addPage([pageWidth, pageHeight]);
             currentY = page.getHeight() - margin;
-            console.log(`Added new page during skills rendering for chunk: ${chunk}`);
           }
 
           currentY = addText(`• ${chunk}`, {
             fontSize: 10,
             indent: indent,
-            checkNewPage: false, // Handle manually
+            checkNewPage: false,
           });
 
-          currentY -= 5; // Space between skill lines
+          currentY -= 5;
         }
-      } else {
-        console.log(`No skills found in category ${skillCategory.title}`);
       }
 
-      // Add extra space after each category
+      // Extra space after category
       currentY -= 5;
     }
-  } else {
-    console.log('No skills section found in resume');
-  }
+  };
 
-  // Add Projects section
-  const projectsSection = findSectionByTitle('projects');
-  if (projectsSection && projectsSection.items.length > 0) {
-    currentY = addSectionTitle('PROJECTS');
+  // Render list section (projects, etc.)
+  const renderListSection = (section: ResumeSection) => {
+    currentY = addSectionTitle(section.title.toUpperCase());
 
-    for (const project of projectsSection.items) {
-      // Check if we need a new page - be more conservative with space estimation
-      const projectHeight = 70; // Estimate for project entry
-      if (checkAndAddNewPageIfNeeded(projectHeight)) {
-        console.log(`Added new page for project: ${project.title}`);
+    if (!section.items || section.items.length === 0) {
+      currentY = addText('No items in this section', {
+        fontSize: 10,
+        color: rgb(0.4, 0.4, 0.4),
+      });
+      return;
+    }
+
+    for (const item of section.items) {
+      // Check if we need a new page
+      const itemHeight = 70;
+      if (checkAndAddNewPageIfNeeded(itemHeight)) {
+        console.log(`Added new page for item: ${item.title}`);
       }
 
       currentY -= 10;
 
-      let projectHeader = project.title;
-      if (project.subtitle) {
-        projectHeader += ` (${project.subtitle})`;
-      }
+      // Item title and subtitle
+      let itemHeader = item.title;
+      if (item.subtitle) {
+        // Display title and subtitle separately with extra spacing
+        currentY = addText(item.title, {
+          fontSize: 12,
+          font: helveticaBold,
+          checkNewPage: false,
+        });
 
-      currentY = addText(projectHeader, {
-        fontSize: 12,
-        font: helveticaBold,
-        checkNewPage: false, // Already checked above
-      });
+        // Add subtitle with extra spacing
+        currentY = addText(item.subtitle, {
+          fontSize: 11,
+          y: currentY - 5, // Add extra spacing before subtitle
+          checkNewPage: false,
+        });
 
-      if (project.description) {
-        currentY = addText(project.description, {
-          fontSize: 10,
-          checkNewPage: false, // Already checked above
+        // Add extra spacing after subtitle
+        currentY -= 5;
+      } else {
+        // Just display the title
+        currentY = addText(itemHeader, {
+          fontSize: 12,
+          font: helveticaBold,
+          checkNewPage: false,
         });
       }
 
-      if (project.tags && project.tags.length > 0) {
-        // Check if we need a new page for technologies
+      // Description
+      if (item.description) {
+        currentY = addText(item.description, {
+          fontSize: 10,
+          checkNewPage: false,
+        });
+      }
+
+      // Content/bullet points
+      if (item.content && item.content.length > 0) {
+        currentY -= 5;
+        for (const contentItem of item.content) {
+          if (currentY - 15 < minBottomMargin) {
+            page = pdfDoc.addPage([pageWidth, pageHeight]);
+            currentY = page.getHeight() - margin;
+          }
+
+          currentY = addText(`• ${contentItem}`, {
+            fontSize: 10,
+            indent: 10,
+            y: currentY - 3,
+            checkNewPage: false,
+          });
+        }
+      }
+
+      // Tags
+      if (item.tags && item.tags.length > 0) {
         if (currentY < minBottomMargin + 15) {
           page = pdfDoc.addPage([pageWidth, pageHeight]);
           currentY = page.getHeight() - margin;
-          console.log(`Added new page for project technologies`);
         }
 
-        const techText = `Technologies: ${project.tags.join(', ')}`;
+        const techText = `Technologies: ${item.tags.join(', ')}`;
         currentY = addText(techText, {
           fontSize: 10,
           color: rgb(0.4, 0.4, 0.4),
-          checkNewPage: false, // Already checked above
+          checkNewPage: false,
         });
       }
+    }
+  };
+
+  // Process all sections in the resume
+  for (const section of resume.sections) {
+    // Determine the section type based on content
+    const sectionType = getSectionType(section);
+
+    // Render section based on its type
+    switch (sectionType) {
+      case SectionType.SUMMARY:
+        renderSummarySection(section);
+        break;
+      case SectionType.TIMELINE:
+        renderTimelineSection(section);
+        break;
+      case SectionType.SKILLS:
+        renderSkillsSection(section);
+        break;
+      case SectionType.LIST:
+        renderListSection(section);
+        break;
     }
   }
 

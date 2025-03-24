@@ -46,13 +46,22 @@ export function parseMarkdown(markdown: string): Resume {
         }
       } else if (token.depth === 3 && currentSection) {
         if (currentItem) {
-          if (!currentItem.items) {
-            currentItem.items = [];
+          // If this is a certification or similar section, the H3 is likely the issuing organization
+          if (
+            currentSection.title.toLowerCase() === 'certifications' ||
+            currentSection.title.toLowerCase() === 'awards'
+          ) {
+            currentItem.subtitle = token.text;
+          } else {
+            // For other sections, treat H3 as nested items as before
+            if (!currentItem.items) {
+              currentItem.items = [];
+            }
+            currentItem.items.push({
+              title: token.text,
+              content: [],
+            });
           }
-          currentItem.items.push({
-            title: token.text,
-            details: [],
-          });
         }
       }
     } else if (token.type === 'paragraph' && token.text) {
@@ -84,7 +93,19 @@ export function parseMarkdown(markdown: string): Resume {
         const text = token.text;
 
         // Check if it's a date range
-        const dateMatch = text.match(/(\d{4})\s*-\s*(.+)/);
+        // This regex handles various date formats:
+        // - Full month name + year (January 2020)
+        // - Month abbreviation + year (Jan 2020)
+        // - MM/YYYY (01/2020)
+        // - MM-YYYY (01-2020)
+        // - MM/YY (01/20)
+        // - MM-YY (01-20)
+        // - YYYY/MM (2020/01)
+        // - YYYY-MM (2020-01)
+        // - YYYY (2020)
+        const dateMatch = text.match(
+          /((?:[a-zA-Z]{3,}\.?|[a-zA-Z]{3})[\s.]?\d{4}|(?:\d{1,2}[-\/]\d{2,4}|\d{4}[-\/]\d{1,2}|\d{1,2}[\/]\d{2}|\d{4}))\s*[-–]\s*(.+)/
+        );
         if (dateMatch) {
           currentItem.period = {
             start: dateMatch[1].trim(),
@@ -98,15 +119,15 @@ export function parseMarkdown(markdown: string): Resume {
       }
     } else if (token.type === 'list' && token.items) {
       if (currentItem) {
-        if (!currentItem.details) {
-          currentItem.details = [];
+        if (!currentItem.content) {
+          currentItem.content = [];
         }
-        currentItem.details.push(...token.items.map((item) => item.text));
+        currentItem.content.push(...token.items.map((item) => item.text));
       }
     }
   }
 
-  // Add final items
+  // Add the last item and section if they exist
   if (currentItem && currentSection) {
     currentSection.items.push(currentItem);
   }
