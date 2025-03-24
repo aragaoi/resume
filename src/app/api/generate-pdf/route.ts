@@ -1,4 +1,4 @@
-mport { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { generateResumePdf, ResumeData } from '../../../lib/pdfGenerator';
 
 /**

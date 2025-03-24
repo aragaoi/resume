@@ -1,54 +1,12 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-
-/**
- * Resume data interface
- */
-export interface ResumeData {
-  name: string;
-  title: string;
-  contact: {
-    email?: string;
-    phone?: string;
-    location?: string;
-    websites?: Array<{
-      url: string;
-      name: string;
-    }>;
-  };
-  summary?: string;
-  experience?: Array<{
-    company: string;
-    position: string;
-    startDate: string;
-    endDate?: string;
-    description?: string;
-    achievements?: string[];
-  }>;
-  education?: Array<{
-    institution: string;
-    degree: string;
-    startDate: string;
-    endDate?: string;
-    description?: string;
-  }>;
-  skills?: Array<{
-    category: string;
-    items: string[];
-  }>;
-  projects?: Array<{
-    name: string;
-    description: string;
-    technologies?: string[];
-    url?: string;
-  }>;
-}
+import { Resume } from '../types/Resume';
 
 /**
  * Generates a PDF resume from provided data
- * @param resumeData The resume data to generate a PDF from
+ * @param resume The resume data to generate a PDF from
  * @returns A Buffer containing the PDF data
  */
-export async function generateResumePdf(resumeData: ResumeData): Promise<Uint8Array> {
+export async function generateResumePdf(resume: Resume): Promise<Uint8Array> {
   // Create a new PDF document
   const pdfDoc = await PDFDocument.create();
 
@@ -199,33 +157,35 @@ export async function generateResumePdf(resumeData: ResumeData): Promise<Uint8Ar
   };
 
   // Add Name and Title
-  currentY = addText(resumeData.name, { fontSize: 24, font: helveticaBold });
-  currentY = addText(resumeData.title, { fontSize: 14, color: rgb(0.4, 0.4, 0.4) });
+  currentY = addText(resume.name, { fontSize: 24, font: helveticaBold });
+  if (resume.title) {
+    currentY = addText(resume.title, { fontSize: 14, color: rgb(0.4, 0.4, 0.4) });
+  }
 
   // Add Contact Information
-  if (resumeData.contact) {
+  if (resume.contact) {
     currentY -= 20;
     let contactText = '';
 
-    if (resumeData.contact.email) {
-      contactText += `Email: ${resumeData.contact.email}  `;
+    if (resume.contact.email) {
+      contactText += `Email: ${resume.contact.email}  `;
     }
 
-    if (resumeData.contact.phone) {
-      contactText += `Phone: ${resumeData.contact.phone}  `;
+    if (resume.contact.phone) {
+      contactText += `Phone: ${resume.contact.phone}  `;
     }
 
-    if (resumeData.contact.location) {
-      contactText += `Location: ${resumeData.contact.location}`;
+    if (resume.contact.location) {
+      contactText += `Location: ${resume.contact.location}`;
     }
 
     currentY = addText(contactText, { fontSize: 10 });
 
-    if (resumeData.contact.websites && resumeData.contact.websites.length > 0) {
+    if (resume.contact.websites && resume.contact.websites.length > 0) {
       let websitesText = 'Websites: ';
-      resumeData.contact.websites.forEach((website, index) => {
-        websitesText += `${website.name} (${website.url})`;
-        if (index < resumeData.contact.websites!.length - 1) {
+      resume.contact.websites.forEach((website, index) => {
+        websitesText += `${website.label || website.type} (${website.url})`;
+        if (index < resume.contact.websites!.length - 1) {
           websitesText += ', ';
         }
       });
@@ -233,40 +193,54 @@ export async function generateResumePdf(resumeData: ResumeData): Promise<Uint8Ar
     }
   }
 
+  // Find sections by title
+  const findSectionByTitle = (title: string) =>
+    resume.sections.find((section) => section.title.toLowerCase() === title.toLowerCase());
+
   // Add Summary if available
-  if (resumeData.summary) {
+  const summarySection = findSectionByTitle('summary');
+  if (summarySection && summarySection.items.length > 0 && summarySection.items[0].description) {
     currentY = addSectionTitle('SUMMARY');
-    currentY = addText(resumeData.summary, { fontSize: 10 });
+    currentY = addText(summarySection.items[0].description, { fontSize: 10 });
   }
 
   // Add Experience section
-  if (resumeData.experience && resumeData.experience.length > 0) {
+  const experienceSection = findSectionByTitle('experience');
+  if (experienceSection && experienceSection.items.length > 0) {
     currentY = addSectionTitle('EXPERIENCE');
 
-    for (const job of resumeData.experience) {
+    for (const job of experienceSection.items) {
       // Check if we need a new page (estimate space needed for job entry)
-      const achievementsSpace = job.achievements ? job.achievements.length * 15 : 0;
+      const achievementsSpace = job.details ? job.details.length * 15 : 0;
       const jobEntrySpace = 70 + achievementsSpace; // Base space for job entry + achievements
       checkAndAddNewPageIfNeeded(jobEntrySpace);
 
       currentY -= 10;
 
       // Company and Position
-      currentY = addText(`${job.position} at ${job.company}`, {
+      currentY = addText(`${job.title} at ${job.subtitle || ''}`, {
         fontSize: 12,
         font: helveticaBold,
         checkNewPage: false, // Already checked above
       });
 
       // Dates
-      const dateText = job.endDate
-        ? `${job.startDate} - ${job.endDate}`
-        : `${job.startDate} - Present`;
-      currentY = addText(dateText, {
-        fontSize: 10,
-        color: rgb(0.4, 0.4, 0.4),
-        checkNewPage: false, // Already checked above
-      });
+      let dateText = '';
+      if (job.period) {
+        dateText = job.period.end
+          ? `${job.period.start} - ${job.period.end}`
+          : `${job.period.start} - Present`;
+      } else if (job.date) {
+        dateText = job.date;
+      }
+
+      if (dateText) {
+        currentY = addText(dateText, {
+          fontSize: 10,
+          color: rgb(0.4, 0.4, 0.4),
+          checkNewPage: false, // Already checked above
+        });
+      }
 
       // Description
       if (job.description) {
@@ -278,7 +252,7 @@ export async function generateResumePdf(resumeData: ResumeData): Promise<Uint8Ar
       }
 
       // Achievements
-      if (job.achievements && job.achievements.length > 0) {
+      if (job.details && job.details.length > 0) {
         currentY -= 5;
 
         // Check if we need a new page for the achievements heading
@@ -293,7 +267,7 @@ export async function generateResumePdf(resumeData: ResumeData): Promise<Uint8Ar
           checkNewPage: false, // Already checked above
         });
 
-        for (const achievement of job.achievements) {
+        for (const achievement of job.details) {
           // Check if we need a new page for each achievement
           if (currentY - 15 < minBottomMargin) {
             page = pdfDoc.addPage([pageWidth, pageHeight]);
@@ -313,38 +287,47 @@ export async function generateResumePdf(resumeData: ResumeData): Promise<Uint8Ar
   }
 
   // Add Education section
-  if (resumeData.education && resumeData.education.length > 0) {
+  const educationSection = findSectionByTitle('education');
+  if (educationSection && educationSection.items.length > 0) {
     currentY = addSectionTitle('EDUCATION');
 
-    for (const edu of resumeData.education) {
+    for (const edu of educationSection.items) {
       // Check if we need a new page - be more conservative with space estimation
       const entryHeight = 80; // Estimate more height for each education entry
       if (checkAndAddNewPageIfNeeded(entryHeight)) {
-        console.log(`Added new page for education entry: ${edu.institution}`);
+        console.log(`Added new page for education entry: ${edu.title}`);
       }
 
       currentY -= 10;
 
       // Institution and Degree
-      currentY = addText(edu.institution, {
+      currentY = addText(edu.subtitle || '', {
         fontSize: 12,
         font: helveticaBold,
         checkNewPage: false, // Already checked above
       });
-      currentY = addText(edu.degree, {
+      currentY = addText(edu.title, {
         fontSize: 11,
         checkNewPage: false, // Already checked above
       });
 
       // Dates
-      const dateText = edu.endDate
-        ? `${edu.startDate} - ${edu.endDate}`
-        : `${edu.startDate} - Present`;
-      currentY = addText(dateText, {
-        fontSize: 10,
-        color: rgb(0.4, 0.4, 0.4),
-        checkNewPage: false, // Already checked above
-      });
+      let dateText = '';
+      if (edu.period) {
+        dateText = edu.period.end
+          ? `${edu.period.start} - ${edu.period.end}`
+          : `${edu.period.start} - Present`;
+      } else if (edu.date) {
+        dateText = edu.date;
+      }
+
+      if (dateText) {
+        currentY = addText(dateText, {
+          fontSize: 10,
+          color: rgb(0.4, 0.4, 0.4),
+          checkNewPage: false, // Already checked above
+        });
+      }
 
       // Description
       if (edu.description) {
@@ -358,66 +341,111 @@ export async function generateResumePdf(resumeData: ResumeData): Promise<Uint8Ar
   }
 
   // Add Skills section
-  if (resumeData.skills && resumeData.skills.length > 0) {
+  const skillsSection = findSectionByTitle('skills');
+  if (skillsSection && skillsSection.items.length > 0) {
     currentY = addSectionTitle('SKILLS');
 
-    for (const skillCategory of resumeData.skills) {
+    // First find out how many skills we have to allocate proper space
+    const totalSkillCategories = skillsSection.items.length;
+    console.log(`Processing ${totalSkillCategories} skill categories`);
+
+    for (let i = 0; i < skillsSection.items.length; i++) {
+      const skillCategory = skillsSection.items[i];
+
       // Check if we need a new page, being more conservative with space estimation
-      const skillHeight = 20; // Estimate more height per skill category
-      if (checkAndAddNewPageIfNeeded(skillHeight)) {
-        console.log(`Added new page for skill category: ${skillCategory.category}`);
+      // We need more space for the first skill category to account for the section title
+      const isFirstSkill = i === 0;
+      const skillHeight = isFirstSkill ? 40 : 20; // Estimate more height per skill category
+
+      if (currentY < skillHeight + minBottomMargin) {
+        page = pdfDoc.addPage([pageWidth, pageHeight]);
+        currentY = page.getHeight() - margin;
+        console.log(`Added new page for skill category: ${skillCategory.title}`);
       }
 
-      currentY -= 8;
-      currentY = addText(`${skillCategory.category}: `, {
-        fontSize: 10,
+      currentY -= 15; // Increase vertical space before each category
+
+      // Draw the category name
+      currentY = addText(`${skillCategory.title}:`, {
+        fontSize: 12,
         font: helveticaBold,
-        checkNewPage: false, // Already checked above
+        checkNewPage: false, // We already checked above
       });
 
-      // For skills, join with less text to ensure proper text wrapping
-      const skillChunks: string[] = [];
-      const skillItems = skillCategory.items;
+      // Get skills list from details field which is how all parsers now store list items
+      let skillItems: string[] = [];
 
-      // Split skills into smaller chunks (maximum 5 skills per line)
-      for (let i = 0; i < skillItems.length; i += 5) {
-        skillChunks.push(skillItems.slice(i, i + 5).join(', '));
+      // All parsers now store lists in the details field after normalization
+      if (skillCategory.details && skillCategory.details.length > 0) {
+        skillItems = skillCategory.details;
+        console.log(
+          `Found ${skillItems.length} skills in details of category ${skillCategory.title}`
+        );
+      } else {
+        console.log(`No skills found in category ${skillCategory.title}`);
       }
 
-      for (const chunk of skillChunks) {
-        if (currentY < minBottomMargin + 15) {
-          page = pdfDoc.addPage([pageWidth, pageHeight]);
-          currentY = page.getHeight() - margin;
-          console.log(`Added new page during skills rendering`);
+      // Filter out empty skills
+      skillItems = skillItems.filter(Boolean);
+
+      // Split skills into manageable chunks
+      if (skillItems.length > 0) {
+        // For skills, join with less text to ensure proper text wrapping
+        const skillChunks: string[] = [];
+
+        console.log(`Processing ${skillItems.length} skills in category ${skillCategory.title}`);
+
+        // Split skills into smaller chunks (maximum 4 skills per line)
+        for (let i = 0; i < skillItems.length; i += 4) {
+          skillChunks.push(skillItems.slice(i, i + 4).join(', '));
         }
 
-        currentY = addText(chunk, {
-          fontSize: 10,
-          indent: skillCategory.category.length * 4 + 15, // Indent after the category
-          checkNewPage: false, // Handle manually
-        });
+        // Add a small indent for all skill items
+        const indent = 15;
 
-        currentY -= 5; // Space between skill lines
+        for (const chunk of skillChunks) {
+          if (currentY < minBottomMargin + 20) {
+            page = pdfDoc.addPage([pageWidth, pageHeight]);
+            currentY = page.getHeight() - margin;
+            console.log(`Added new page during skills rendering for chunk: ${chunk}`);
+          }
+
+          currentY = addText(`• ${chunk}`, {
+            fontSize: 10,
+            indent: indent,
+            checkNewPage: false, // Handle manually
+          });
+
+          currentY -= 5; // Space between skill lines
+        }
+      } else {
+        console.log(`No skills found in category ${skillCategory.title}`);
       }
+
+      // Add extra space after each category
+      currentY -= 5;
     }
+  } else {
+    console.log('No skills section found in resume');
   }
 
   // Add Projects section
-  if (resumeData.projects && resumeData.projects.length > 0) {
+  const projectsSection = findSectionByTitle('projects');
+  if (projectsSection && projectsSection.items.length > 0) {
     currentY = addSectionTitle('PROJECTS');
 
-    for (const project of resumeData.projects) {
+    for (const project of projectsSection.items) {
       // Check if we need a new page - be more conservative with space estimation
       const projectHeight = 70; // Estimate for project entry
       if (checkAndAddNewPageIfNeeded(projectHeight)) {
-        console.log(`Added new page for project: ${project.name}`);
+        console.log(`Added new page for project: ${project.title}`);
       }
 
       currentY -= 10;
 
-      let projectHeader = project.name;
-      if (project.url) {
-        projectHeader += ` (${project.url})`;
+      let projectHeader = project.title;
+      if (project.subtitle) {
+        projectHeader += ` (${project.subtitle})`;
       }
 
       currentY = addText(projectHeader, {
@@ -433,7 +461,7 @@ export async function generateResumePdf(resumeData: ResumeData): Promise<Uint8Ar
         });
       }
 
-      if (project.technologies && project.technologies.length > 0) {
+      if (project.tags && project.tags.length > 0) {
         // Check if we need a new page for technologies
         if (currentY < minBottomMargin + 15) {
           page = pdfDoc.addPage([pageWidth, pageHeight]);
@@ -441,7 +469,7 @@ export async function generateResumePdf(resumeData: ResumeData): Promise<Uint8Ar
           console.log(`Added new page for project technologies`);
         }
 
-        const techText = `Technologies: ${project.technologies.join(', ')}`;
+        const techText = `Technologies: ${project.tags.join(', ')}`;
         currentY = addText(techText, {
           fontSize: 10,
           color: rgb(0.4, 0.4, 0.4),
