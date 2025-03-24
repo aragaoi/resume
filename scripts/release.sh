@@ -204,6 +204,23 @@ create_github_release() {
             done <"$TEMP_DIR/fix.txt"
             echo
         fi
+
+        # Add other categories
+        for category in "docs:Documentation" "style:Styles" "refactor:Refactoring" "test:Tests" "chore:Chores" "other:Other Changes"; do
+            cat_file=$(echo "$category" | cut -d':' -f1)
+            cat_title=$(echo "$category" | cut -d':' -f2)
+
+            if [ -s "$TEMP_DIR/$cat_file.txt" ]; then
+                echo "### $cat_title"
+                echo
+                while IFS= read -r line; do
+                    hash=$(echo "$line" | cut -d' ' -f1)
+                    message=$(echo "$line" | cut -d' ' -f2-)
+                    echo "- $message ($hash)"
+                done <"$TEMP_DIR/$cat_file.txt"
+                echo
+            fi
+        done
     } >"$release_notes"
 
     # Check if gh CLI is installed
@@ -290,6 +307,75 @@ for category in feat fix docs style refactor test chore other; do
         echo -e "- $category: $count commits"
     fi
 done
+
+# Check if only 'other' commits are found - may need manual intervention
+other_count=$(wc -l <"$TEMP_DIR/other.txt")
+total_conv_count=0
+for category in feat fix docs style refactor test chore; do
+    conv_count=$(wc -l <"$TEMP_DIR/$category.txt")
+    total_conv_count=$((total_conv_count + conv_count))
+done
+
+if [ "$other_count" -gt 0 ] && [ "$total_conv_count" -eq 0 ]; then
+    echo -e "${YELLOW}Warning: No conventional commits detected. Only 'other' commits found.${NC}"
+    read -p "Would you like to manually enter changes? (y/n): " manual_changes
+
+    if [[ "$manual_changes" =~ ^[Yy]$ ]]; then
+        echo -e "${BLUE}Enter changes (one per line, empty line to finish):${NC}"
+        echo -e "${BLUE}Format: type: description (e.g. 'feat: Add new feature')${NC}"
+
+        >"$TEMP_DIR/manual_changes.txt"
+        while true; do
+            read -p "> " change
+            if [ -z "$change" ]; then
+                break
+            fi
+            echo "$change" >>"$TEMP_DIR/manual_changes.txt"
+        done
+
+        # Process manual changes
+        >"$TEMP_DIR/feat.txt"
+        >"$TEMP_DIR/fix.txt"
+        >"$TEMP_DIR/docs.txt"
+        >"$TEMP_DIR/style.txt"
+        >"$TEMP_DIR/refactor.txt"
+        >"$TEMP_DIR/test.txt"
+        >"$TEMP_DIR/chore.txt"
+        >"$TEMP_DIR/other.txt"
+
+        while IFS= read -r line; do
+            # Use a random hash for manual entries
+            hash=$(echo "$RANDOM$RANDOM" | md5sum | cut -c1-7)
+
+            if [[ "$line" =~ ^feat:.*$ ]]; then
+                echo "$hash $line" >>"$TEMP_DIR/feat.txt"
+            elif [[ "$line" =~ ^fix:.*$ ]]; then
+                echo "$hash $line" >>"$TEMP_DIR/fix.txt"
+            elif [[ "$line" =~ ^docs:.*$ ]]; then
+                echo "$hash $line" >>"$TEMP_DIR/docs.txt"
+            elif [[ "$line" =~ ^style:.*$ ]]; then
+                echo "$hash $line" >>"$TEMP_DIR/style.txt"
+            elif [[ "$line" =~ ^refactor:.*$ ]]; then
+                echo "$hash $line" >>"$TEMP_DIR/refactor.txt"
+            elif [[ "$line" =~ ^test:.*$ ]]; then
+                echo "$hash $line" >>"$TEMP_DIR/test.txt"
+            elif [[ "$line" =~ ^chore:.*$ ]]; then
+                echo "$hash $line" >>"$TEMP_DIR/chore.txt"
+            else
+                echo "$hash $line" >>"$TEMP_DIR/other.txt"
+            fi
+        done <"$TEMP_DIR/manual_changes.txt"
+
+        # Display updated summary
+        echo -e "\n${BLUE}Updated Commit Summary:${NC}"
+        for category in feat fix docs style refactor test chore other; do
+            count=$(wc -l <"$TEMP_DIR/$category.txt")
+            if [ "$count" -gt 0 ]; then
+                echo -e "- $category: $count entries"
+            fi
+        done
+    fi
+fi
 
 # If dry run, exit here
 if [ "$DRY_RUN" = true ]; then
