@@ -7,6 +7,14 @@ interface ResumeSectionProps {
 }
 
 export const ResumeSection: React.FC<ResumeSectionProps> = ({ section, isPrint }) => {
+  // Check if this section should be rendered as paragraphs (without bullets)
+  // This happens when:
+  // 1. There's only one item in the section OR
+  // 2. All items have only one content element
+  const shouldRenderAsParagraphs =
+    section.items.length === 1 ||
+    section.items.every((item) => item.content && item.content.length === 1);
+
   return (
     <div className={`mb-8 ${isPrint ? 'print:mb-4' : ''}`}>
       <h2 className="text-2xl font-bold mb-6 print:text-xl print:mb-3">{section.title}</h2>
@@ -14,7 +22,8 @@ export const ResumeSection: React.FC<ResumeSectionProps> = ({ section, isPrint }
         section.items.map((item, index) => (
           <React.Fragment key={index}>
             <div className="mb-8 print:mb-4">
-              {item.title && (
+              {/* Only show item title if we're not rendering everything as paragraphs */}
+              {!shouldRenderAsParagraphs && item.title && (
                 <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2 mb-3 print:mb-2">
                   <div>
                     <h3 className="text-xl font-semibold print:text-lg">{item.title}</h3>
@@ -30,14 +39,19 @@ export const ResumeSection: React.FC<ResumeSectionProps> = ({ section, isPrint }
                   )}
                 </div>
               )}
+
+              {/* Item description */}
               {item.description && (
                 <p className="opacity-75 mt-2 whitespace-pre-line print:text-sm">
                   {item.description}
                 </p>
               )}
+
+              {/* Content rendering */}
               {item.content &&
                 item.content.length > 0 &&
-                (item.title === '' ? (
+                (shouldRenderAsParagraphs || item.title === '' ? (
+                  // Render as paragraphs
                   <div className="mt-2 space-y-4 print:mt-1 print:space-y-2">
                     {item.content.map((contentItem, contentIndex) => (
                       <p key={contentIndex} className="opacity-75 print:text-sm">
@@ -46,6 +60,7 @@ export const ResumeSection: React.FC<ResumeSectionProps> = ({ section, isPrint }
                     ))}
                   </div>
                 ) : (
+                  // Render as bullet list
                   <ul className="mt-4 list-disc list-inside space-y-2 print:mt-2 print:space-y-1">
                     {item.content.map((contentItem, contentIndex) => (
                       <li key={contentIndex} className="opacity-75 print:text-sm">
@@ -54,6 +69,8 @@ export const ResumeSection: React.FC<ResumeSectionProps> = ({ section, isPrint }
                     ))}
                   </ul>
                 ))}
+
+              {/* Tags */}
               {item.tags && (
                 <div className="flex flex-wrap gap-2 mt-4 print:mt-2 print:gap-1">
                   {isPrint

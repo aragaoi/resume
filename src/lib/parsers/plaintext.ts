@@ -227,10 +227,8 @@ export function parsePlainText(content: string): Resume {
       !isDateLine(line)
     ) {
       // This is likely a direct section content (like a summary)
-      currentItem = {
-        title: '',
-        content: [line],
-      };
+      // Initialize collector for all paragraph lines
+      const paragraphLines: string[] = [line];
 
       // Collect any additional paragraph lines that might follow
       while (
@@ -242,12 +240,16 @@ export function parsePlainText(content: string): Resume {
         !isDateLine(lines[i + 1].trim())
       ) {
         i++;
-        if (!currentItem.content) {
-          currentItem.content = [];
-        }
-        currentItem.content.push(lines[i].trim());
+        paragraphLines.push(lines[i].trim());
       }
 
+      // Join all paragraph lines into a single content item
+      currentItem = {
+        title: '',
+        content: [paragraphLines.join('\n\n')],
+      };
+
+      // Add the current item to the section
       currentSection.items.push(currentItem);
       currentItem = null;
       continue;
