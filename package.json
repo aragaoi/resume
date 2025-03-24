@@ -10,7 +10,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "release": "bash scripts/release.sh"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.0.11",
