@@ -1,5 +1,5 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-import { Resume, ResumeSection } from '../types/Resume';
+import { Resume, ResumeItem, ResumeSection } from '../types/Resume';
 
 /**
  * Enum for section types to determine rendering approach
@@ -12,6 +12,34 @@ enum SectionType {
 }
 
 /**
+ * Spacing constants for consistent layout
+ */
+const SPACING = {
+  // Spacing before section title (for non-first sections)
+  SECTION_TITLE_BEFORE: 10,
+  // Additional spacing for non-first sections
+  SECTION_TITLE_BEFORE_EXTRA: 12,
+  // Spacing between section title text and underline
+  SECTION_TITLE_UNDERLINE: 8,
+  // Spacing after section title underline
+  SECTION_TITLE_AFTER: 15,
+  // Spacing after item title
+  ITEM_TITLE_AFTER: 16,
+  // Spacing after subtitle
+  SUBTITLE_AFTER: 16,
+  // Spacing after date/period text
+  DATE_AFTER: 15,
+  // Spacing after item description
+  DESCRIPTION_AFTER: 10,
+  // Spacing before bullet points
+  BULLET_BEFORE: 3,
+  // Spacing after each bullet point
+  BULLET_AFTER: 3,
+  // Standard spacing between items
+  ITEM_SPACING: 12,
+};
+
+/**
  * Generates a PDF resume from provided data
  * @param resume The resume data to generate a PDF from
  * @returns A Buffer containing the PDF data
@@ -19,6 +47,11 @@ enum SectionType {
 export async function generateResumePdf(resume: Resume): Promise<Uint8Array> {
   // Create a new PDF document
   const pdfDoc = await PDFDocument.create();
+
+  // Load fonts
+  const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const helveticaOblique = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
 
   // Define page dimensions
   const pageWidth = 595.28;
@@ -43,10 +76,6 @@ export async function generateResumePdf(resume: Resume): Promise<Uint8Array> {
     }
     return false;
   };
-
-  // Get common fonts
-  const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
   // Helper function to add text
   const addText = (
@@ -136,7 +165,7 @@ export async function generateResumePdf(resume: Resume): Promise<Uint8Array> {
   };
 
   // Helper function to add a section title
-  const addSectionTitle = (title: string) => {
+  const addSectionTitle = (title: string, isFirstSection: boolean = false) => {
     // For section titles, we need about 40 points of space (title + line + padding)
     // Always start a new section on a new page if we're below 100 points from the bottom
     if (currentY < 100 + minBottomMargin) {
@@ -148,59 +177,196 @@ export async function generateResumePdf(resume: Resume): Promise<Uint8Array> {
       checkAndAddNewPageIfNeeded(40);
     }
 
-    currentY = addText(title, {
-      fontSize: 14,
+    // Add extra space before the section title if it's not the first section
+    if (!isFirstSection) {
+      currentY -= SPACING.SECTION_TITLE_BEFORE + SPACING.SECTION_TITLE_BEFORE_EXTRA;
+    } else {
+      // Add standard space before first section title
+      currentY -= SPACING.SECTION_TITLE_BEFORE;
+    }
+
+    // Draw the title with bold font
+    page.drawText(title.toUpperCase(), {
+      x: margin,
+      y: currentY,
+      size: 14,
       font: helveticaBold,
-      y: currentY - 20,
-      color: rgb(0.2, 0.2, 0.2),
-      checkNewPage: false, // Already checked above
+      color: rgb(0.1, 0.1, 0.1),
     });
 
+    // Draw a horizontal line under the section title
+    currentY -= SPACING.SECTION_TITLE_UNDERLINE;
     page.drawLine({
-      start: { x: margin, y: currentY + 6 },
-      end: { x: page.getWidth() - margin, y: currentY + 6 },
-      thickness: 1,
-      color: rgb(0.8, 0.8, 0.8),
+      start: { x: margin, y: currentY },
+      end: { x: pageWidth - margin, y: currentY },
+      thickness: 0.75,
+      color: rgb(0.7, 0.7, 0.7),
     });
 
-    return currentY - 10;
+    // Consistent spacing after the section title line for all sections
+    currentY -= SPACING.SECTION_TITLE_AFTER;
+
+    return currentY;
   };
 
-  // Add Name and Title
-  currentY = addText(resume.name, { fontSize: 24, font: helveticaBold });
+  // Add Name
+  page.drawText(resume.name, {
+    x: margin,
+    y: currentY,
+    size: 24,
+    font: helveticaBold,
+    color: rgb(0, 0, 0),
+  });
+  currentY -= 20; // Reduced from 30
+
+  // Add Title with slightly smaller font
   if (resume.title) {
-    currentY = addText(resume.title, { fontSize: 14, color: rgb(0.4, 0.4, 0.4) });
+    page.drawText(resume.title, {
+      x: margin,
+      y: currentY,
+      size: 16,
+      font: helveticaFont,
+      color: rgb(0.3, 0.3, 0.3),
+    });
+    currentY -= 15; // Reduced from 25
   }
+
+  // Draw a horizontal line to separate the header from contact info
+  page.drawLine({
+    start: { x: margin, y: currentY + 10 },
+    end: { x: pageWidth - margin, y: currentY + 10 },
+    thickness: 1,
+    color: rgb(0.8, 0.8, 0.8),
+  });
+  currentY -= 15; // Reduced from 25
 
   // Add Contact Information
   if (resume.contact) {
-    currentY -= 20;
-    let contactText = '';
+    // Two-column layout for contact information
+    const leftColumnX = margin;
+    const rightColumnX = margin + 250; // Adjust based on page width
+    let leftColumnY = currentY;
+    let rightColumnY = currentY;
 
+    // Left column: Email and Phone
     if (resume.contact.email) {
-      contactText += `Email: ${resume.contact.email}  `;
+      // Draw the label in bold
+      page.drawText('Email:', {
+        x: leftColumnX,
+        y: leftColumnY,
+        size: 11,
+        font: helveticaBold,
+        color: rgb(0.2, 0.2, 0.2),
+      });
+
+      // Draw the value with regular font, indented
+      page.drawText(resume.contact.email, {
+        x: leftColumnX + 50,
+        y: leftColumnY,
+        size: 11,
+        font: helveticaFont,
+        color: rgb(0.2, 0.2, 0.2),
+      });
+      leftColumnY -= 15; // Reduced from 18 - Space between lines
     }
 
     if (resume.contact.phone) {
-      contactText += `Phone: ${resume.contact.phone}  `;
-    }
-
-    if (resume.contact.location) {
-      contactText += `Location: ${resume.contact.location}`;
-    }
-
-    currentY = addText(contactText, { fontSize: 10 });
-
-    if (resume.contact.websites && resume.contact.websites.length > 0) {
-      let websitesText = 'Websites: ';
-      resume.contact.websites.forEach((website, index) => {
-        websitesText += `${website.label || website.type} (${website.url})`;
-        if (index < resume.contact.websites!.length - 1) {
-          websitesText += ', ';
-        }
+      // Draw the label in bold
+      page.drawText('Phone:', {
+        x: leftColumnX,
+        y: leftColumnY,
+        size: 11,
+        font: helveticaBold,
+        color: rgb(0.2, 0.2, 0.2),
       });
-      currentY = addText(websitesText, { fontSize: 10 });
+
+      // Draw the value with regular font, indented
+      page.drawText(resume.contact.phone, {
+        x: leftColumnX + 50,
+        y: leftColumnY,
+        size: 11,
+        font: helveticaFont,
+        color: rgb(0.2, 0.2, 0.2),
+      });
+      leftColumnY -= 15; // Reduced from 18
     }
+
+    // Right column: Location and Websites
+    if (resume.contact.location) {
+      // Draw the label in bold
+      page.drawText('Location:', {
+        x: rightColumnX,
+        y: rightColumnY,
+        size: 11,
+        font: helveticaBold,
+        color: rgb(0.2, 0.2, 0.2),
+      });
+
+      // Draw the value with regular font, indented
+      page.drawText(resume.contact.location, {
+        x: rightColumnX + 65,
+        y: rightColumnY,
+        size: 11,
+        font: helveticaFont,
+        color: rgb(0.2, 0.2, 0.2),
+      });
+      rightColumnY -= 15; // Reduced from 18
+    }
+
+    // Add websites to the appropriate column (whichever has more space)
+    if (resume.contact.websites && resume.contact.websites.length > 0) {
+      for (const website of resume.contact.websites) {
+        const label = website.label || website.type.charAt(0).toUpperCase() + website.type.slice(1);
+
+        // Choose the column with more space
+        if (leftColumnY > rightColumnY) {
+          // Draw the label in bold
+          page.drawText(`${label}:`, {
+            x: leftColumnX,
+            y: leftColumnY,
+            size: 11,
+            font: helveticaBold,
+            color: rgb(0.2, 0.2, 0.2),
+          });
+
+          // Draw the value with regular font, indented
+          // Adjust indent based on label length
+          const indent = Math.max(label.length * 6, 50);
+          page.drawText(website.url, {
+            x: leftColumnX + indent,
+            y: leftColumnY,
+            size: 11,
+            font: helveticaFont,
+            color: rgb(0.1, 0.3, 0.8), // Blue color for links
+          });
+          leftColumnY -= 15; // Reduced from 18
+        } else {
+          // Draw the label in bold
+          page.drawText(`${label}:`, {
+            x: rightColumnX,
+            y: rightColumnY,
+            size: 11,
+            font: helveticaBold,
+            color: rgb(0.2, 0.2, 0.2),
+          });
+
+          // Draw the value with regular font, indented
+          // Adjust indent based on label length
+          const indent = Math.max(label.length * 6, 65);
+          page.drawText(website.url, {
+            x: rightColumnX + indent,
+            y: rightColumnY,
+            size: 11,
+            font: helveticaFont,
+            color: rgb(0.1, 0.3, 0.8), // Blue color for links
+          });
+          rightColumnY -= 15; // Reduced from 18
+        }
+      }
+    }
+
+    // Set currentY to the lower of the two columns
+    currentY = Math.min(leftColumnY, rightColumnY) - 5; // Reduced from 10
   }
 
   // Determine section type based on content structure and title
@@ -227,141 +393,131 @@ export async function generateResumePdf(resume: Resume): Promise<Uint8Array> {
   };
 
   // Render summary section (single paragraph)
-  const renderSummarySection = (section: ResumeSection) => {
-    currentY = addSectionTitle(section.title.toUpperCase());
+  const renderSummarySection = (section: ResumeSection, isFirstSection: boolean) => {
+    currentY = addSectionTitle(section.title.toUpperCase(), isFirstSection);
 
-    if (section.items && section.items.length > 0 && section.items[0].description) {
-      currentY = addText(section.items[0].description, { fontSize: 10 });
+    // Check if we have items to render
+    if (section.items && section.items.length > 0) {
+      const item = section.items[0];
+
+      // If there's a description, render it
+      if (item.description) {
+        currentY = addText(item.description, { fontSize: 10 });
+        // Add some spacing if we also have content
+        if (item.content && item.content.length > 0) {
+          currentY -= 10;
+        }
+      }
+
+      // If there's content, render each content item as paragraph text (not bullets)
+      if (item.content && item.content.length > 0) {
+        for (let i = 0; i < item.content.length; i++) {
+          const contentItem = item.content[i];
+          // Add text without indentation
+          currentY = addText(contentItem, {
+            fontSize: 10,
+            indent: 0,
+          });
+
+          // Add spacing between paragraphs but not after the last one
+          if (i < item.content.length - 1) {
+            currentY -= 5;
+          }
+        }
+      }
     }
   };
 
-  // Render timeline section (experience, education, certificates, etc.)
-  const renderTimelineSection = (section: ResumeSection) => {
-    currentY = addSectionTitle(section.title.toUpperCase());
+  // Helper function to render a timeline section (like education or experience)
+  const renderTimelineSection = (section: ResumeSection, isFirstSection: boolean) => {
+    if (!section.items || section.items.length === 0) return;
 
-    if (!section.items || section.items.length === 0) {
-      currentY = addText('No items in this section', {
-        fontSize: 10,
-        color: rgb(0.4, 0.4, 0.4),
+    currentY = addSectionTitle(section.title, isFirstSection);
+
+    // First item starts directly after the standard section spacing
+    // No need to add extra spacing here
+
+    for (let i = 0; i < section.items.length; i++) {
+      const item = section.items[i];
+      const isLastItem = i === section.items.length - 1;
+
+      checkAndAddNewPageIfNeeded(60); // Check if we need a new page for this item
+
+      // Item title (e.g., Company name or University)
+      page.drawText(item.title, {
+        x: margin,
+        y: currentY,
+        size: 12,
+        font: helveticaBold,
+        color: rgb(0, 0, 0),
       });
-      return;
-    }
+      currentY -= SPACING.ITEM_TITLE_AFTER;
 
-    for (const item of section.items) {
-      // Calculate required space
-      const contentSpace = item.content ? item.content.length * 15 : 0;
-      const itemSpace = 70 + contentSpace; // Base space + content
-      checkAndAddNewPageIfNeeded(itemSpace);
+      // Extra spacing for subtitle
+      if (item.subtitle) {
+        // Item subtitle (e.g., Department or Degree)
+        page.drawText(item.subtitle, {
+          x: margin,
+          y: currentY,
+          size: 11,
+          font: helveticaFont,
+          color: rgb(0.2, 0.2, 0.2),
+        });
+        currentY -= SPACING.SUBTITLE_AFTER;
+      }
 
-      currentY -= 10;
-
-      // Get the date text first to determine the layout
-      let dateText = '';
-      let isSingleDateItem = false;
+      // Create a separate line for location and date
+      let locationDateText = '';
 
       if (item.period) {
-        // Check if this is a single-date item (start and end dates are the same)
-        isSingleDateItem = item.period.start === item.period.end;
+        const dateText = item.period.end
+          ? `${item.period.start} - ${item.period.end}`
+          : `${item.period.start} - Present`;
 
-        // For single date items (like certifications), just show the start date
-        if (isSingleDateItem) {
-          dateText = item.period.start;
-        } else {
-          // For date ranges (like jobs and education), use the full date range
-          dateText = item.period.end
-            ? `${item.period.start} - ${item.period.end}`
-            : `${item.period.start} - Present`;
-        }
+        locationDateText = dateText;
       }
 
-      // Special handling for items with single dates (like certifications)
-      if (isSingleDateItem && dateText) {
-        // Draw the year first
-        currentY = addText(dateText, {
-          fontSize: 10,
+      if (locationDateText) {
+        page.drawText(locationDateText, {
+          x: margin,
+          y: currentY,
+          size: 10,
+          font: helveticaOblique,
           color: rgb(0.4, 0.4, 0.4),
-          checkNewPage: false,
         });
-
-        // Add spacing after the year
-        currentY -= 5;
+        currentY -= SPACING.DATE_AFTER;
       }
 
-      // Title and subtitle
-      let titleText = item.title;
-      if (item.subtitle) {
-        if (section.title.toLowerCase() === 'experience') {
-          titleText += ` at ${item.subtitle}`;
-        } else {
-          currentY = addText(item.title, {
-            fontSize: 12,
-            font: helveticaBold,
-            checkNewPage: false,
-          });
-
-          // Add subtitle with extra spacing
-          currentY = addText(item.subtitle, {
-            fontSize: 11,
-            y: currentY - 5, // Add extra spacing before subtitle
-            checkNewPage: false,
-          });
-
-          // Add extra spacing after subtitle
-          currentY -= 5;
-        }
-      }
-
-      // If we didn't render separately above
-      if (!item.subtitle || section.title.toLowerCase() === 'experience') {
-        currentY = addText(titleText, {
-          fontSize: 12,
-          font: helveticaBold,
-          checkNewPage: false,
-        });
-      }
-
-      // Dates - Only show dates here if not already shown for single-date items
-      if (dateText && !isSingleDateItem) {
-        currentY = addText(dateText, {
-          fontSize: 10,
-          color: rgb(0.4, 0.4, 0.4),
-          checkNewPage: false,
-        });
-      }
-
-      // Description
+      // Item description
       if (item.description) {
         currentY = addText(item.description, {
-          fontSize: 10,
-          y: currentY - 5,
-          checkNewPage: false,
+          fontSize: 11,
+          y: currentY,
         });
       }
 
-      // Content/bullet points
+      // Item content (bullet points)
       if (item.content && item.content.length > 0) {
-        currentY -= 5;
         for (const contentItem of item.content) {
-          // Check if we need a new page for each content item
-          if (currentY - 15 < minBottomMargin) {
-            page = pdfDoc.addPage([pageWidth, pageHeight]);
-            currentY = page.getHeight() - margin;
-          }
-
-          currentY = addText(`• ${contentItem}`, {
+          currentY = addText(`- ${contentItem}`, {
             fontSize: 10,
             indent: 10,
-            y: currentY - 3,
-            checkNewPage: false,
+            y: currentY - SPACING.BULLET_BEFORE,
           });
         }
+      }
+
+      // Only add spacing between items, not after the last item
+      if (!isLastItem) {
+        // Add standardized spacing between items
+        currentY -= SPACING.ITEM_SPACING;
       }
     }
   };
 
   // Render skills section (categories and lists)
-  const renderSkillsSection = (section: ResumeSection) => {
-    currentY = addSectionTitle(section.title.toUpperCase());
+  const renderSkillsSection = (section: ResumeSection, isFirstSection: boolean) => {
+    currentY = addSectionTitle(section.title.toUpperCase(), isFirstSection);
 
     if (!section.items || section.items.length === 0) {
       currentY = addText('No skills listed', {
@@ -371,9 +527,10 @@ export async function generateResumePdf(resume: Resume): Promise<Uint8Array> {
       return;
     }
 
-    // Process each skill category
+    // Process each skill category - no additional spacing needed here
     for (let i = 0; i < section.items.length; i++) {
       const skillCategory = section.items[i];
+      const isLastCategory = i === section.items.length - 1;
 
       // Check if we need a new page
       const isFirstSkill = i === 0;
@@ -384,9 +541,7 @@ export async function generateResumePdf(resume: Resume): Promise<Uint8Array> {
         currentY = page.getHeight() - margin;
       }
 
-      currentY -= 15;
-
-      // Draw category name
+      // Draw category name directly, without additional spacing
       currentY = addText(`${skillCategory.title}:`, {
         fontSize: 12,
         font: helveticaBold,
@@ -416,24 +571,26 @@ export async function generateResumePdf(resume: Resume): Promise<Uint8Array> {
             currentY = page.getHeight() - margin;
           }
 
-          currentY = addText(`• ${chunk}`, {
+          currentY = addText(`- ${chunk}`, {
             fontSize: 10,
             indent: indent,
             checkNewPage: false,
           });
 
-          currentY -= 5;
+          currentY -= SPACING.BULLET_AFTER;
         }
       }
 
-      // Extra space after category
-      currentY -= 5;
+      // Only add standard spacing between skill categories, not after the last one
+      if (!isLastCategory) {
+        currentY -= SPACING.ITEM_SPACING;
+      }
     }
   };
 
   // Render list section (projects, etc.)
-  const renderListSection = (section: ResumeSection) => {
-    currentY = addSectionTitle(section.title.toUpperCase());
+  const renderListSection = (section: ResumeSection, isFirstSection: boolean) => {
+    currentY = addSectionTitle(section.title.toUpperCase(), isFirstSection);
 
     if (!section.items || section.items.length === 0) {
       currentY = addText('No items in this section', {
@@ -443,14 +600,16 @@ export async function generateResumePdf(resume: Resume): Promise<Uint8Array> {
       return;
     }
 
-    for (const item of section.items) {
+    // No extra spacing needed here
+    for (let i = 0; i < section.items.length; i++) {
+      const item = section.items[i];
+      const isLastItem = i === section.items.length - 1;
+
       // Check if we need a new page
       const itemHeight = 70;
       if (checkAndAddNewPageIfNeeded(itemHeight)) {
         console.log(`Added new page for item: ${item.title}`);
       }
-
-      currentY -= 10;
 
       // Item title and subtitle
       let itemHeader = item.title;
@@ -462,15 +621,12 @@ export async function generateResumePdf(resume: Resume): Promise<Uint8Array> {
           checkNewPage: false,
         });
 
-        // Add subtitle with extra spacing
+        // Add subtitle with consistent spacing
         currentY = addText(item.subtitle, {
           fontSize: 11,
-          y: currentY - 5, // Add extra spacing before subtitle
+          y: currentY - SPACING.BULLET_BEFORE,
           checkNewPage: false,
         });
-
-        // Add extra spacing after subtitle
-        currentY -= 5;
       } else {
         // Just display the title
         currentY = addText(itemHeader, {
@@ -490,17 +646,17 @@ export async function generateResumePdf(resume: Resume): Promise<Uint8Array> {
 
       // Content/bullet points
       if (item.content && item.content.length > 0) {
-        currentY -= 5;
+        currentY -= SPACING.BULLET_BEFORE;
         for (const contentItem of item.content) {
           if (currentY - 15 < minBottomMargin) {
             page = pdfDoc.addPage([pageWidth, pageHeight]);
             currentY = page.getHeight() - margin;
           }
 
-          currentY = addText(`• ${contentItem}`, {
+          currentY = addText(`- ${contentItem}`, {
             fontSize: 10,
             indent: 10,
-            y: currentY - 3,
+            y: currentY - SPACING.BULLET_BEFORE,
             checkNewPage: false,
           });
         }
@@ -520,27 +676,36 @@ export async function generateResumePdf(resume: Resume): Promise<Uint8Array> {
           checkNewPage: false,
         });
       }
+
+      // Only add spacing between items, not after the last item
+      if (!isLastItem) {
+        // Add standardized spacing between items
+        currentY -= SPACING.ITEM_SPACING;
+      }
     }
   };
 
   // Process all sections in the resume
-  for (const section of resume.sections) {
+  for (let i = 0; i < resume.sections.length; i++) {
+    const section = resume.sections[i];
+    const isFirstSection = i === 0;
+
     // Determine the section type based on content
     const sectionType = getSectionType(section);
 
     // Render section based on its type
     switch (sectionType) {
       case SectionType.SUMMARY:
-        renderSummarySection(section);
+        renderSummarySection(section, isFirstSection);
         break;
       case SectionType.TIMELINE:
-        renderTimelineSection(section);
+        renderTimelineSection(section, isFirstSection);
         break;
       case SectionType.SKILLS:
-        renderSkillsSection(section);
+        renderSkillsSection(section, isFirstSection);
         break;
       case SectionType.LIST:
-        renderListSection(section);
+        renderListSection(section, isFirstSection);
         break;
     }
   }

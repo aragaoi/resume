@@ -5,6 +5,10 @@ Website: https://johndoe.com
 Phone: +1 234 567 8900
 Location: San Francisco, CA
 
+# Summary
+
+Experienced software engineer with over 5 years of expertise in full-stack development, cloud architecture, and team leadership. Passionate about creating scalable, efficient applications and mentoring junior developers. Proven track record of optimizing systems and implementing best practices that significantly enhance application performance and development workflows.
+
 # Experience
 
 ## Senior Software Engineer at TechCorp

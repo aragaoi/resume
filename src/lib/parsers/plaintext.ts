@@ -216,6 +216,43 @@ export function parsePlainText(content: string): Resume {
       continue;
     }
 
+    // Check for single paragraph content in a section (like a summary)
+    if (
+      currentSection &&
+      currentSection.items.length === 0 &&
+      !currentSubsection &&
+      !currentItem &&
+      !line.startsWith('-') &&
+      !isSubsectionHeader(line) &&
+      !isDateLine(line)
+    ) {
+      // This is likely a direct section content (like a summary)
+      currentItem = {
+        title: '',
+        content: [line],
+      };
+
+      // Collect any additional paragraph lines that might follow
+      while (
+        i + 1 < lines.length &&
+        lines[i + 1].trim() &&
+        !lines[i + 1].trim().startsWith('-') &&
+        !isMainSectionHeader(lines[i + 1].trim()) &&
+        !isSubsectionHeader(lines[i + 1].trim()) &&
+        !isDateLine(lines[i + 1].trim())
+      ) {
+        i++;
+        if (!currentItem.content) {
+          currentItem.content = [];
+        }
+        currentItem.content.push(lines[i].trim());
+      }
+
+      currentSection.items.push(currentItem);
+      currentItem = null;
+      continue;
+    }
+
     // Subsection headers (like "Technical Skills:")
     if (currentSection && isSubsectionHeader(line)) {
       if (currentItem && currentSubsection) {

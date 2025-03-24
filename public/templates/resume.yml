@@ -13,6 +13,9 @@ contact:
     - url: '[https://linkedin.com/in/profile]'
       type: 'linkedin'
 sections:
+  - title: 'Summary'
+    content:
+      - '[Professional summary highlighting your experience, key skills, and career objectives. Keep it concise while emphasizing your most relevant qualifications and unique value proposition.]'
   - title: 'Experience'
     content:
       - title: '[Current Job Title] at [Company]'

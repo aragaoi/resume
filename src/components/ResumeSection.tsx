@@ -14,34 +14,46 @@ export const ResumeSection: React.FC<ResumeSectionProps> = ({ section, isPrint }
         section.items.map((item, index) => (
           <React.Fragment key={index}>
             <div className="mb-8 print:mb-4">
-              <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2 mb-3 print:mb-2">
-                <div>
-                  <h3 className="text-xl font-semibold print:text-lg">{item.title}</h3>
-                  {item.subtitle && (
-                    <p className="text-base opacity-75 print:text-sm">{item.subtitle}</p>
+              {item.title && (
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2 mb-3 print:mb-2">
+                  <div>
+                    <h3 className="text-xl font-semibold print:text-lg">{item.title}</h3>
+                    {item.subtitle && (
+                      <p className="text-base opacity-75 print:text-sm">{item.subtitle}</p>
+                    )}
+                  </div>
+                  {item.period && (
+                    <div className="badge badge-lg badge-secondary whitespace-nowrap print:badge-md">
+                      {item.period.start}
+                      {item.period.end ? ` - ${item.period.end}` : ' - Present'}
+                    </div>
                   )}
                 </div>
-                {item.period && (
-                  <div className="badge badge-lg badge-secondary whitespace-nowrap print:badge-md">
-                    {item.period.start}
-                    {item.period.end ? ` - ${item.period.end}` : ' - Present'}
-                  </div>
-                )}
-              </div>
+              )}
               {item.description && (
                 <p className="opacity-75 mt-2 whitespace-pre-line print:text-sm">
                   {item.description}
                 </p>
               )}
-              {item.content && item.content.length > 0 && (
-                <ul className="mt-4 list-disc list-inside space-y-2 print:mt-2 print:space-y-1">
-                  {item.content.map((contentItem, contentIndex) => (
-                    <li key={contentIndex} className="opacity-75 print:text-sm">
-                      {contentItem}
-                    </li>
-                  ))}
-                </ul>
-              )}
+              {item.content &&
+                item.content.length > 0 &&
+                (item.title === '' ? (
+                  <div className="mt-2 space-y-4 print:mt-1 print:space-y-2">
+                    {item.content.map((contentItem, contentIndex) => (
+                      <p key={contentIndex} className="opacity-75 print:text-sm">
+                        {contentItem}
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <ul className="mt-4 list-disc list-inside space-y-2 print:mt-2 print:space-y-1">
+                    {item.content.map((contentItem, contentIndex) => (
+                      <li key={contentIndex} className="opacity-75 print:text-sm">
+                        {contentItem}
+                      </li>
+                    ))}
+                  </ul>
+                ))}
               {item.tags && (
                 <div className="flex flex-wrap gap-2 mt-4 print:mt-2 print:gap-1">
                   {isPrint

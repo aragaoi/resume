@@ -28,6 +28,7 @@ export function parseMarkdown(markdown: string): Resume {
           if (currentSection) {
             sections.push(currentSection);
           }
+
           currentSection = {
             title: token.text,
             items: [],
@@ -88,6 +89,13 @@ export function parseMarkdown(markdown: string): Resume {
             }
           }
         }
+      } else if (currentSection && currentSection.items.length === 0 && !currentItem) {
+        // We're in a section but have no items yet - this is likely section content (like a summary)
+        // Create an item with no title to hold the content
+        currentItem = {
+          title: '',
+          content: [token.text],
+        };
       } else if (currentItem) {
         // We're in a section item
         const text = token.text;

@@ -7,6 +7,10 @@ LinkedIn: [linkedin url]
 Phone: [phone number]
 Location: [city, state]
 
+# Summary
+
+[Professional summary highlighting your experience, key skills, and career objectives. Keep it concise (3-4 sentences) while emphasizing your most relevant qualifications and unique value proposition.]
+
 # Experience
 
 ## [Current Job Title] at [Company]

@@ -9,6 +9,11 @@ Portfolio: [your portfolio]
 LinkedIn: [your linkedin]
 
 
+SUMMARY
+
+[Professional summary highlighting your experience, key skills, and career objectives. Keep it concise (3-4 sentences) while emphasizing your most relevant qualifications and unique value proposition.]
+
+
 EXPERIENCE
 
 [Current Job Title] at [Company Name]
