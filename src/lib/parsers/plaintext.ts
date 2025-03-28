@@ -1,6 +1,25 @@
 import { Resume, ResumeSection, ResumeItem, Period, Website } from '../../types/Resume';
 import { parseWebsiteType } from './website';
 
+// Constants for string literals
+const CONTACT_SECTION_HEADER = 'contact information:';
+const CONTACT_FIELDS = {
+  EMAIL: 'email',
+  PHONE: 'phone',
+  LOCATION: 'location',
+  WEBSITE: 'website',
+  PORTFOLIO: 'portfolio',
+  LINKEDIN: 'linkedin',
+};
+
+const SUMMARY_FIELD_PREFIX = 'summary:';
+const BULLET_POINT = '-';
+const COLON = ':';
+const PLACEHOLDER_MARKERS = {
+  OPEN: '[',
+  CLOSE: ']',
+};
+
 const parsePeriod = (text: string): Period | undefined => {
   // Support for multiple date formats:
   // - Full month name + year (January 2020)
@@ -16,9 +35,10 @@ const parsePeriod = (text: string): Period | undefined => {
     /((?:[a-zA-Z]{3,}\.?|[a-zA-Z]{3})[\s.]?\d{4}|(?:\d{1,2}[-\/]\d{2,4}|\d{4}[-\/]\d{1,2}|\d{1,2}[\/]\d{2}|\d{4}))\s*[-–]\s*(.+)/
   );
   if (periodMatch) {
+    const endText = periodMatch[2].trim();
     return {
       start: periodMatch[1].trim(),
-      end: periodMatch[2].trim() === 'Present' ? undefined : periodMatch[2].trim(),
+      end: endText === 'Present' ? undefined : endText,
     };
   }
   return undefined;
@@ -67,8 +87,8 @@ const isMainSectionHeader = (line: string): boolean => {
   return (
     line === line.toUpperCase() &&
     line.trim().length > 0 &&
-    !line.includes(':') &&
-    !line.startsWith('-') &&
+    !line.includes(COLON) &&
+    !line.startsWith(BULLET_POINT) &&
     // Avoid treating date lines as section headers
     !isDateLine(line)
   );
@@ -76,58 +96,126 @@ const isMainSectionHeader = (line: string): boolean => {
 
 // Check if a line is a subsection header based on structure
 const isSubsectionHeader = (line: string): boolean => {
+  // Contact field prefixes to exclude
+  const contactFields = [
+    CONTACT_FIELDS.EMAIL,
+    CONTACT_FIELDS.PHONE,
+    CONTACT_FIELDS.LOCATION,
+    CONTACT_FIELDS.WEBSITE,
+    CONTACT_FIELDS.PORTFOLIO,
+    CONTACT_FIELDS.LINKEDIN,
+  ];
   return (
-    line.endsWith(':') &&
-    !line.toLowerCase().startsWith('email:') &&
-    !line.toLowerCase().startsWith('phone:') &&
-    !line.toLowerCase().startsWith('location:') &&
-    !line.toLowerCase().startsWith('website:') &&
-    !line.toLowerCase().startsWith('portfolio:') &&
-    !line.toLowerCase().startsWith('linkedin:')
+    line.endsWith(COLON) &&
+    !contactFields.some((field) => line.toLowerCase().startsWith(field + COLON))
   );
+};
+
+// Helper function to create and process an item from the current state
+const createItemFromLines = (
+  title: string,
+  period: Period | undefined,
+  lines: string[]
+): ResumeItem | null => {
+  const item: ResumeItem = {
+    title,
+    period,
+    content: [],
+  };
+
+  // Process bullet points as content
+  for (const line of lines) {
+    if (line.startsWith(BULLET_POINT)) {
+      item.content!.push(line.substring(1).trim());
+    }
+  }
+
+  // Return the item if it has content or a title
+  if (item.title || (item.content && item.content.length > 0)) {
+    return item;
+  }
+  return null;
 };
 
 export function parsePlainText(content: string): Resume {
   const lines = content.split('\n');
   const sections: ResumeSection[] = [];
-  let currentSection: ResumeSection | null = null;
-  let currentSubsection: ResumeItem | null = null;
-  let currentItem: ResumeItem | null = null;
   let name = '';
   let title = '';
   let email = '';
   let phone = '';
   let location = '';
   const websites: Website[] = [];
+  let summaryContent: string[] = [];
 
   let isContactSection = false;
-  const sectionMap = new Map<string, ResumeSection>(); // Track sections by title
 
+  // Pre-processing: Extract sections and their blocks for better handling
+  const sectionBlocks: { title: string; content: string[] }[] = [];
+  let currentSectionTitle = '';
+  let currentBlock: string[] = [];
+
+  // First pass to identify section blocks
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-    if (!line) {
-      // Empty lines can indicate the end of an item
-      if (currentItem && currentSection && i + 1 < lines.length) {
-        const nextLine = lines[i + 1].trim();
-        // If the next non-empty line is not a bullet point and not a section header,
-        // it's likely a new item title
-        if (
-          nextLine &&
-          !nextLine.startsWith('-') &&
-          !isMainSectionHeader(nextLine) &&
-          !isDateLine(nextLine)
-        ) {
-          if (currentSubsection) {
-            if (!currentSubsection.items) currentSubsection.items = [];
-            currentSubsection.items.push(currentItem);
-          } else {
-            currentSection.items.push(currentItem);
-          }
-          currentItem = null;
-        }
+
+    // Check for summary field
+    if (line.toLowerCase().startsWith(SUMMARY_FIELD_PREFIX)) {
+      // Extract summary content from this line
+      const summaryLine = line.substring(SUMMARY_FIELD_PREFIX.length).trim();
+      if (summaryLine) {
+        summaryContent.push(summaryLine);
       }
+
+      // Collect any subsequent lines until we hit an empty line or a section header
+      let j = i + 1;
+      while (j < lines.length) {
+        const nextLine = lines[j].trim();
+        if (
+          !nextLine ||
+          isMainSectionHeader(nextLine) ||
+          nextLine.toLowerCase().startsWith(SUMMARY_FIELD_PREFIX)
+        ) {
+          break;
+        }
+        summaryContent.push(nextLine);
+        j++;
+      }
+
+      // Skip the lines we've processed
+      i = j - 1;
       continue;
     }
+
+    // Skip the first two blocks (name and contact info)
+    if (!currentSectionTitle && isMainSectionHeader(line)) {
+      currentSectionTitle = line;
+      currentBlock = [];
+    } else if (currentSectionTitle && isMainSectionHeader(line)) {
+      // We found a new section
+      sectionBlocks.push({
+        title: currentSectionTitle,
+        content: [...currentBlock],
+      });
+      currentSectionTitle = line;
+      currentBlock = [];
+    } else if (currentSectionTitle) {
+      currentBlock.push(line);
+    }
+  }
+
+  // Add the last section
+  if (currentSectionTitle && currentBlock.length > 0) {
+    sectionBlocks.push({
+      title: currentSectionTitle,
+      content: [...currentBlock],
+    });
+  }
+
+  // Basic parsing for name and contact info
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
 
     // First non-empty line is the name
     if (!name) {
@@ -138,9 +226,9 @@ export function parsePlainText(content: string): Resume {
         const nextLine = lines[i + 1].trim();
         if (
           nextLine &&
-          !nextLine.toLowerCase().includes('contact information') &&
+          !nextLine.toLowerCase().includes(CONTACT_SECTION_HEADER) &&
           !isMainSectionHeader(nextLine) &&
-          !nextLine.includes(':')
+          !nextLine.includes(COLON)
         ) {
           title = nextLine;
           i++; // Skip the next line since we've processed it
@@ -150,406 +238,187 @@ export function parsePlainText(content: string): Resume {
     }
 
     // Contact section
-    if (line.toLowerCase() === 'contact information:') {
+    if (line.toLowerCase() === CONTACT_SECTION_HEADER) {
       isContactSection = true;
       continue;
     }
 
     if (isContactSection) {
       const normalizedLine = line.toLowerCase();
-      if (normalizedLine.startsWith('email:')) {
-        email = line.split(':')[1].trim();
-      } else if (normalizedLine.startsWith('phone:')) {
-        phone = line.split(':')[1].trim();
-      } else if (normalizedLine.startsWith('location:')) {
-        location = line.split(':')[1].trim();
+      if (normalizedLine.startsWith(CONTACT_FIELDS.EMAIL + COLON)) {
+        email = line.split(COLON)[1].trim();
+      } else if (normalizedLine.startsWith(CONTACT_FIELDS.PHONE + COLON)) {
+        phone = line.split(COLON)[1].trim();
+      } else if (normalizedLine.startsWith(CONTACT_FIELDS.LOCATION + COLON)) {
+        location = line.split(COLON)[1].trim();
       } else if (
-        normalizedLine.startsWith('website:') ||
-        normalizedLine.startsWith('portfolio:') ||
-        normalizedLine.startsWith('linkedin:')
+        normalizedLine.startsWith(CONTACT_FIELDS.WEBSITE + COLON) ||
+        normalizedLine.startsWith(CONTACT_FIELDS.PORTFOLIO + COLON) ||
+        normalizedLine.startsWith(CONTACT_FIELDS.LINKEDIN + COLON)
       ) {
         const website = parseWebsiteType(line);
         if (website) {
           websites.push(website);
         }
-      } else if (line.trim() && !line.includes('[') && !line.includes(']')) {
-        // If we hit a non-empty line that's not a placeholder and not a website,
-        // we're out of the contact section
-        isContactSection = false;
-        i--; // Re-process this line
-      }
-
-      if (isContactSection) continue;
-    }
-
-    // Main section headers
-    if (isMainSectionHeader(line)) {
-      // Save current items before moving to a new section
-      if (currentItem && currentSubsection) {
-        if (!currentSubsection.items) currentSubsection.items = [];
-        currentSubsection.items.push(currentItem);
-        currentItem = null;
-      } else if (currentItem && currentSection) {
-        currentSection.items.push(currentItem);
-        currentItem = null;
-      }
-
-      if (currentSubsection && currentSection) {
-        currentSection.items.push(currentSubsection);
-        currentSubsection = null;
-      }
-
-      // Check if we've already seen this section
-      if (sectionMap.has(line)) {
-        currentSection = sectionMap.get(line)!;
-      } else {
-        currentSection = {
-          title: line,
-          items: [],
-        };
-        sections.push(currentSection);
-        sectionMap.set(line, currentSection);
-      }
-
-      currentSubsection = null;
-      currentItem = null;
-      continue;
-    }
-
-    // Check for single paragraph content in a section (like a summary)
-    if (
-      currentSection &&
-      currentSection.items.length === 0 &&
-      !currentSubsection &&
-      !currentItem &&
-      !line.startsWith('-') &&
-      !isSubsectionHeader(line) &&
-      !isDateLine(line)
-    ) {
-      // This is likely a direct section content (like a summary)
-      // Initialize collector for all paragraph lines
-      const paragraphLines: string[] = [line];
-
-      // Collect any additional paragraph lines that might follow
-      while (
-        i + 1 < lines.length &&
-        lines[i + 1].trim() &&
-        !lines[i + 1].trim().startsWith('-') &&
-        !isMainSectionHeader(lines[i + 1].trim()) &&
-        !isSubsectionHeader(lines[i + 1].trim()) &&
-        !isDateLine(lines[i + 1].trim())
+      } else if (
+        line.trim() &&
+        !line.includes(PLACEHOLDER_MARKERS.OPEN) &&
+        !line.includes(PLACEHOLDER_MARKERS.CLOSE) &&
+        isMainSectionHeader(line)
       ) {
-        i++;
-        paragraphLines.push(lines[i].trim());
+        // Only break out of contact section if we hit a main section header
+        isContactSection = false;
+        // We need to reprocess this line since it's a section header
+        i--;
       }
-
-      // Join all paragraph lines into a single content item
-      currentItem = {
-        title: '',
-        content: [paragraphLines.join('\n\n')],
-      };
-
-      // Add the current item to the section
-      currentSection.items.push(currentItem);
-      currentItem = null;
-      continue;
     }
+  }
 
-    // Subsection headers (like "Technical Skills:")
-    if (currentSection && isSubsectionHeader(line)) {
-      if (currentItem && currentSubsection) {
-        if (!currentSubsection.items) currentSubsection.items = [];
-        currentSubsection.items.push(currentItem);
-        currentItem = null;
-      } else if (currentItem && currentSection) {
-        currentSection.items.push(currentItem);
-        currentItem = null;
-      }
-
-      if (currentSubsection) {
-        currentSection.items.push(currentSubsection);
-      }
-
-      currentSubsection = {
-        title: line, // Keep the colon in the title
-        items: [],
-      };
-      currentItem = null;
-      continue;
-    }
-
-    // Job/Education entries with periods
-    if (currentSection && !line.startsWith('-')) {
-      // Check if the next line might be a subtitle (organization, degree, etc.)
-      let subtitleLine = '';
-      let periodLine = '';
-
-      if (i + 1 < lines.length && !lines[i + 1].startsWith('-')) {
-        const nextLine = lines[i + 1].trim();
-
-        // Check if it's a date/period line
-        if (isDateLine(nextLine) || parsePeriod(nextLine)) {
-          periodLine = nextLine;
-          i++; // Skip this line
-
-          // Check if there's a subtitle after the period
-          if (
-            i + 1 < lines.length &&
-            !lines[i + 1].startsWith('-') &&
-            !isMainSectionHeader(lines[i + 1])
-          ) {
-            const potentialSubtitle = lines[i + 1].trim();
-            if (potentialSubtitle && !isDateLine(potentialSubtitle)) {
-              subtitleLine = potentialSubtitle;
-              i++; // Skip this line too
-            }
-          }
-        }
-        // If not a date line, it might be a subtitle
-        else if (!isMainSectionHeader(nextLine) && !isSubsectionHeader(nextLine)) {
-          subtitleLine = nextLine;
-          i++; // Skip this line
-
-          // Check if there's a period after the subtitle
-          if (i + 1 < lines.length && !lines[i + 1].startsWith('-')) {
-            const potentialPeriod = lines[i + 1].trim();
-            if (isDateLine(potentialPeriod) || parsePeriod(potentialPeriod)) {
-              periodLine = potentialPeriod;
-              i++; // Skip this line too
-            }
-          }
-        }
-      }
-
-      // If we have a period or this is a new item title
-      if (periodLine || subtitleLine || !currentItem) {
-        if (currentItem) {
-          if (currentSubsection) {
-            if (!currentSubsection.items) currentSubsection.items = [];
-            currentSubsection.items.push(currentItem);
-          } else {
-            currentSection.items.push(currentItem);
-          }
-        }
-
-        // Check if this is a date line
-        if (isDateLine(line)) {
-          // If we have a previous item, add the date
-          if (currentSection.items.length > 0) {
-            const lastItem = currentSection.items[currentSection.items.length - 1];
-            if (!lastItem.period) {
-              const period = parsePeriod(line);
-              if (period) {
-                lastItem.period = period;
-              } else if (!lastItem.period) {
-                lastItem.period = {
-                  start: line,
-                };
-              }
-            }
-          } else {
-            // If no previous item, create a placeholder that will be attached to the next item
-            currentItem = {
-              title: '',
-              period: {
-                start: line,
-              },
-            };
-            currentSection.items.push(currentItem);
-            currentItem = null;
-          }
-        } else {
-          // Regular item title
-          currentItem = {
-            title: line,
-          };
-
-          // Add subtitle if available
-          if (subtitleLine) {
-            currentItem.subtitle = subtitleLine;
-          }
-
-          // Add period if available
-          if (periodLine) {
-            // Try to process as a date line
-            // Date lines are either one date or a range of dates
-            const period = parsePeriod(periodLine);
-            if (period) {
-              currentItem.period = period;
-            } else {
-              // Single date
-              currentItem.period = {
-                start: periodLine,
-              };
-            }
-          }
-        }
-      }
-      continue;
-    }
-
-    // Bullet points become content
-    if (line.startsWith('-')) {
-      const detail = line.substring(1).trim();
-
-      // Add to the appropriate item
-      if (currentItem) {
-        if (!currentItem.content) {
-          currentItem.content = [];
-        }
-        currentItem.content.push(detail);
-      } else if (currentSubsection) {
-        if (!currentSubsection.content) {
-          currentSubsection.content = [];
-        }
-        currentSubsection.content.push(detail);
-      } else if (currentSection) {
-        // Create a generic item for the bullet point if no current item
-        currentItem = {
+  // If we found a summary, create a dedicated summary section
+  if (summaryContent.length > 0) {
+    sections.push({
+      title: 'SUMMARY',
+      items: [
+        {
           title: '',
-          content: [detail],
-        };
-        currentSection.items.push(currentItem);
-        currentItem = null;
+          content: summaryContent,
+        },
+      ],
+    });
+  }
+
+  // Process each section block
+  for (const sectionBlock of sectionBlocks) {
+    const sectionItems: ResumeItem[] = [];
+    let itemLines: string[] = [];
+    let currentItemTitle = '';
+    let currentItemPeriod: Period | undefined = undefined;
+
+    const section: ResumeSection = {
+      title: sectionBlock.title,
+      items: [],
+    };
+
+    const addCurrentItem = () => {
+      if (currentItemTitle || itemLines.length > 0) {
+        const item = createItemFromLines(currentItemTitle, currentItemPeriod, itemLines);
+        if (item) sectionItems.push(item);
+
+        // Reset for next item
+        currentItemTitle = '';
+        currentItemPeriod = undefined;
+        itemLines = [];
       }
-    }
-  }
+    };
 
-  // Add final items
-  if (currentItem) {
-    if (currentSubsection) {
-      if (!currentSubsection.items) currentSubsection.items = [];
-      currentSubsection.items.push(currentItem);
-    } else if (currentSection) {
-      currentSection.items.push(currentItem);
-    }
-  }
+    // Process the section content to identify items
+    for (let i = 0; i < sectionBlock.content.length; i++) {
+      const line = sectionBlock.content[i].trim();
 
-  if (currentSubsection && currentSection) {
-    currentSection.items.push(currentSubsection);
-  }
-
-  // Consolidate sections with the same title
-  const uniqueSections: ResumeSection[] = [];
-  const processedTitles = new Set<string>();
-
-  for (const section of sections) {
-    if (!processedTitles.has(section.title)) {
-      processedTitles.add(section.title);
-
-      // Find all sections with this title
-      const matchingSections = sections.filter((s) => s.title === section.title);
-
-      if (matchingSections.length === 1) {
-        // Just one section with this title, add it directly
-        uniqueSections.push(section);
-      } else {
-        // Multiple sections with the same title, merge their items
-        const mergedSection: ResumeSection = {
-          title: section.title,
-          items: [],
-        };
-
-        for (const matchingSection of matchingSections) {
-          mergedSection.items.push(...matchingSection.items);
-        }
-
-        uniqueSections.push(mergedSection);
-      }
-    }
-  }
-
-  // Post-processing to consolidate related items in all sections
-  for (const section of uniqueSections) {
-    // Group items that might be related (title + subtitle/period combinations)
-    if (section.items.length < 2) continue;
-
-    const processedItems: ResumeItem[] = [];
-    let lastItem: ResumeItem | null = null;
-
-    for (const item of section.items) {
-      if (!lastItem) {
-        lastItem = { ...item };
-        processedItems.push(lastItem);
+      // Empty line indicates end of an item
+      if (!line) {
+        addCurrentItem();
         continue;
       }
 
-      // See if this item should be merged with the last one
-      if (!item.title && lastItem.title) {
-        // Merge period if not present
-        if (item.period && !lastItem.period) {
-          lastItem.period = item.period;
-        }
-        // Merge content
-        if (item.content) {
-          if (!lastItem.content) {
-            lastItem.content = [];
-          }
-          lastItem.content.push(...item.content);
-        }
-        // For backward compatibility, also merge details if present
-        if ((item as any).details) {
-          if (!lastItem.content) {
-            lastItem.content = [];
-          }
-          lastItem.content.push(...(item as any).details);
-        }
-      } else {
-        // If can't find a related item, add as is
-        processedItems.push(item);
+      // Check for subsection headers (like "Technical Skills:")
+      if (isSubsectionHeader(line)) {
+        addCurrentItem();
+
+        // Create a new subsection item
+        currentItemTitle = line;
+        currentItemPeriod = undefined;
+        continue;
       }
-    }
 
-    section.items = processedItems;
-  }
+      // Check if this is a bullet point (part of current item)
+      if (line.startsWith(BULLET_POINT)) {
+        itemLines.push(line);
+        continue;
+      }
 
-  // Merge duplicated items
-  const mergedSections: ResumeSection[] = [];
-  for (const section of uniqueSections) {
-    const mergedSection = { ...section };
-
-    // Merge items with the same title in each section
-    if (section.items.length > 1) {
-      const mergedItems: ResumeItem[] = [];
-      const seenTitles = new Set<string>();
-
-      for (const item of section.items) {
-        if (!item.title) continue;
-
-        const existingItem = mergedItems.find((mi) => mi.title === item.title);
-        if (existingItem) {
-          // Merge the items
-          if (item.subtitle) existingItem.subtitle = item.subtitle;
-          if (item.period) existingItem.period = item.period;
-          if (item.description) existingItem.description = item.description;
-
-          // Merge content
-          if (item.content) {
-            if (!existingItem.content) {
-              existingItem.content = [];
-            }
-            existingItem.content.push(...item.content);
-          }
-
-          // For backward compatibility, also merge details if present
-          if ((item as any).details) {
-            if (!existingItem.content) {
-              existingItem.content = [];
-            }
-            existingItem.content.push(...(item as any).details);
-          }
-
-          // Merge any other fields as needed
+      // If this is a date line and we have a title, it's likely the period for the current item
+      if (isDateLine(line) && currentItemTitle) {
+        const period = parsePeriod(line);
+        if (period) {
+          currentItemPeriod = period;
         } else {
-          mergedItems.push({ ...item });
-          seenTitles.add(item.title);
+          currentItemPeriod = { start: line };
         }
+        continue;
       }
 
-      mergedSection.items = mergedItems;
+      // If we have no title yet, this is likely a title
+      if (!currentItemTitle) {
+        // Check if next line is a date
+        const nextLineIndex = i + 1 < sectionBlock.content.length ? i + 1 : -1;
+        if (nextLineIndex >= 0) {
+          const nextLine = sectionBlock.content[nextLineIndex].trim();
+          if (isDateLine(nextLine)) {
+            // This is a title followed by a date
+            currentItemTitle = line;
+            const period = parsePeriod(nextLine);
+            if (period) {
+              currentItemPeriod = period;
+            } else {
+              currentItemPeriod = { start: nextLine };
+            }
+            i++; // Skip the next line (date)
+            continue;
+          }
+        }
+
+        // If no date on next line, treat as title anyway
+        currentItemTitle = line;
+        continue;
+      }
+
+      // If it's not a bullet and we have a title, add to item lines for later processing
+      itemLines.push(line);
     }
 
-    mergedSections.push(mergedSection);
+    // Add the last item if we have one
+    addCurrentItem();
+
+    // Post-process section items to merge related items
+    const mergedItems: ResumeItem[] = [];
+
+    // Merge title items with their bullet points
+    for (let i = 0; i < sectionItems.length; i++) {
+      const currentItem = sectionItems[i];
+      const nextItem = i + 1 < sectionItems.length ? sectionItems[i + 1] : null;
+
+      // If this item has a title and the next item doesn't but has content, merge them
+      if (
+        currentItem.title &&
+        nextItem &&
+        !nextItem.title &&
+        nextItem.content &&
+        nextItem.content.length > 0
+      ) {
+        // Ensure we have a valid content array
+        const currentContent = currentItem.content || [];
+
+        const mergedItem: ResumeItem = {
+          title: currentItem.title,
+          period: currentItem.period || nextItem.period,
+          content: [...currentContent],
+        };
+
+        // Add next item's content
+        if (nextItem.content) {
+          mergedItem.content!.push(...nextItem.content);
+        }
+
+        mergedItems.push(mergedItem);
+        i++; // Skip the next item since we've merged it
+      } else {
+        mergedItems.push(currentItem);
+      }
+    }
+
+    section.items = mergedItems;
+    sections.push(section);
   }
 
   return {
@@ -561,6 +430,6 @@ export function parsePlainText(content: string): Resume {
       location,
       websites,
     },
-    sections: mergedSections,
+    sections: sections,
   };
 }

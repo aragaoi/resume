@@ -21,10 +21,11 @@ export interface ResumeItem {
   description?: string;
 
   // List content - bullet points, skill items, etc.
+  // Now always contains strings
   content?: string[];
 
-  // Tags are kept separate as they serve a different purpose
-  tags?: string[];
+  // Tags can be any type, not just strings
+  tags?: any[];
 
   // For nested items like skills categories
   items?: ResumeItem[];

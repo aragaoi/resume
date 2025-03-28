@@ -29,19 +29,28 @@ export const Home: React.FC = () => {
 
   // Helper function to parse resume text based on file extension
   const parseResumeText = async (text: string, fileExtension: string) => {
+    // Convert file extension to supported format
+    let format: FileFormat;
     switch (fileExtension) {
       case 'md':
-        return parseMarkdown(text);
+        format = 'md';
+        break;
       case 'yml':
       case 'yaml':
-        return parseYaml(text);
+        format = 'yaml';
+        break;
       case 'txt':
-        return parsePlainText(text);
+        format = 'txt';
+        break;
       case 'json':
-        return parseJson(text);
+        format = 'json';
+        break;
       default:
         throw new Error(`Unsupported file format: ${fileExtension}`);
     }
+
+    // Use parseContent to ensure normalization happens
+    return parseContent(text, format);
   };
 
   // Function to load the default resume

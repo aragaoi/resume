@@ -383,6 +383,9 @@ export async function generateResumePdf(resume: Resume): Promise<Uint8Array> {
       return SectionType.SKILLS;
     }
 
+    // We no longer need a special check for certifications by title
+    // Any section with items that have dates will be treated as TIMELINE
+
     // Check if section has timeline-like items (with dates/periods)
     if (section.items?.some((item) => item.period)) {
       return SectionType.TIMELINE;
@@ -470,11 +473,47 @@ export async function generateResumePdf(resume: Resume): Promise<Uint8Array> {
       let locationDateText = '';
 
       if (item.period) {
-        const dateText = item.period.end
-          ? `${item.period.start} - ${item.period.end}`
-          : `${item.period.start} - Present`;
+        // Deep debugging for certification dates
+        console.log('==========================================');
+        console.log(`PERIOD DEBUG for item: "${item.title}" in section: "${section.title}"`);
+        console.log('Raw period object:', JSON.stringify(item.period));
+        console.log('Period start type:', typeof item.period.start);
+        console.log('Period end type:', typeof item.period.end);
+        console.log('Period end value:', item.period.end);
+        console.log('Period start === end:', item.period.start === item.period.end);
 
-        locationDateText = dateText;
+        // Make the comparison more robust by trimming and normalizing date strings
+        const startDate = item.period.start?.trim();
+        const endDate = item.period.end?.trim();
+
+        console.log('After trim - startDate:', startDate);
+        console.log('After trim - endDate:', endDate);
+        console.log('After trim - startDate === endDate:', startDate === endDate);
+
+        // For normalized dates where end === start, only show the start date
+        // This happens for certifications and other single-date items
+        if (endDate && startDate === endDate) {
+          locationDateText = startDate;
+          console.log('DECISION: Using only start date (exact match)');
+        }
+        // For "Present" dates (from markdown parser without normalization)
+        else if (endDate === 'Present') {
+          locationDateText = `${startDate} - Present`;
+          console.log('DECISION: Using start date with Present');
+        }
+        // For undefined end date (should be rare after normalization)
+        else if (!endDate) {
+          locationDateText = `${startDate} - Present`;
+          console.log('DECISION: Using start date with Present (undefined end)');
+        }
+        // For actual date ranges with different start and end dates
+        else {
+          locationDateText = `${startDate} - ${endDate}`;
+          console.log('DECISION: Using full date range');
+        }
+
+        console.log('Final locationDateText:', locationDateText);
+        console.log('==========================================');
       }
 
       if (locationDateText) {
